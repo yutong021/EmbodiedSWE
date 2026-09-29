@@ -49,23 +49,57 @@ class _Actor(torch.nn.Module):
         return self.actor(self.normalizer(obs))
 
 
+class _MLPActor(torch.nn.Module):
+    """Tensor-only deterministic wrapper for an RSL-RL 5 MLP actor."""
+
+    def __init__(self, normalizer, mlp) -> None:
+        super().__init__()
+        self.normalizer, self.mlp = normalizer, mlp
+
+    def forward(self, obs):
+        return self.mlp(self.normalizer(obs))
+
+
 def export_solution(run_dir: str | Path, checkpoint: str | Path, out_dir: str | Path) -> Path:
     from tensordict import TensorDict
-    from rsl_rl.modules import ActorCritic
 
     run_dir, checkpoint, out_dir = Path(run_dir), Path(checkpoint), Path(out_dir)
     meta = json.loads((run_dir / "env.json").read_text())
     ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
-    sd = ckpt["model_state_dict"]
-    n_obs = int(sd[next(k for k in sd if k.startswith("actor.") and k.endswith("weight"))].shape[1])
-    pol = dict(meta["cfg"]["ppo"]["policy"])
-    pol.pop("class_name", None)
+    n_obs = int(meta["num_obs"])
     obs = TensorDict({"policy": torch.zeros(1, n_obs), "critic": torch.zeros(1, n_obs)}, batch_size=[1])
-    ac = ActorCritic(obs, meta["cfg"]["ppo"]["obs_groups"], int(meta["num_actions"]), **pol)
-    ac.load_state_dict(sd)
-    ac.eval()
+    pol = dict(meta["cfg"]["ppo"]["policy"])
+    if "actor_state_dict" in ckpt:
+        from rsl_rl.models import MLPModel
+
+        actor = MLPModel(
+            obs,
+            {"actor": ["policy"]},
+            "actor",
+            int(meta["num_actions"]),
+            hidden_dims=pol["actor_hidden_dims"],
+            activation=pol.get("activation", "elu"),
+            obs_normalization=pol.get("actor_obs_normalization", False),
+            distribution_cfg={
+                "class_name": "GaussianDistribution",
+                "init_std": pol.get("init_noise_std", 1.0),
+                "std_type": pol.get("noise_std_type", "scalar"),
+            },
+        )
+        actor.load_state_dict(ckpt["actor_state_dict"])
+        actor.eval()
+        actor = _MLPActor(actor.obs_normalizer, actor.mlp).eval()
+    else:
+        from rsl_rl.modules import ActorCritic
+
+        sd = ckpt["model_state_dict"]
+        n_obs = int(sd[next(k for k in sd if k.startswith("actor.") and k.endswith("weight"))].shape[1])
+        pol.pop("class_name", None)
+        ac = ActorCritic(obs, meta["cfg"]["ppo"]["obs_groups"], int(meta["num_actions"]), **pol)
+        ac.load_state_dict(sd)
+        ac.eval()
+        actor = _Actor(ac.actor_obs_normalizer, ac.actor).eval()
     out_dir.mkdir(parents=True, exist_ok=True)
-    actor = _Actor(ac.actor_obs_normalizer, ac.actor).eval()
     with torch.no_grad():
         scripted = torch.jit.trace(actor, torch.zeros(1, n_obs))
         x = torch.randn(4, n_obs)

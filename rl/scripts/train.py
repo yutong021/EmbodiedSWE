@@ -47,6 +47,35 @@ def make_train_cfg(cfg: dict) -> tuple[dict, int, float, float]:
     snapshot_min = float(ppo.pop("snapshot_minutes", 0) or 0)
     max_wall_min = float(ppo.pop("max_wall_minutes", 0) or 0)
     ppo.setdefault("logger", "tensorboard")
+    # RSL-RL 4+ replaced the ActorCritic `policy` block with separate model configs.
+    # Keep the repository YAML stable and translate it at the runner boundary.
+    if "policy" in ppo and "actor" not in ppo:
+        policy = ppo.pop("policy")
+        activation = policy.get("activation", "elu")
+        ppo["actor"] = {
+            "class_name": "MLPModel",
+            "hidden_dims": policy["actor_hidden_dims"],
+            "activation": activation,
+            "obs_normalization": policy.get("actor_obs_normalization", False),
+            "distribution_cfg": {
+                "class_name": "GaussianDistribution",
+                "init_std": policy.get("init_noise_std", 1.0),
+                "std_type": policy.get("noise_std_type", "scalar"),
+            },
+        }
+        ppo["critic"] = {
+            "class_name": "MLPModel",
+            "hidden_dims": policy["critic_hidden_dims"],
+            "activation": activation,
+            "obs_normalization": policy.get("critic_obs_normalization", False),
+            "distribution_cfg": None,
+        }
+        groups = ppo.get("obs_groups", {})
+        if "actor" not in groups and "policy" in groups:
+            groups["actor"] = groups.pop("policy")
+        ppo["obs_groups"] = groups
+    ppo["algorithm"].setdefault("rnd_cfg", None)
+    ppo["algorithm"].setdefault("symmetry_cfg", None)
     return ppo, max_iterations, snapshot_min, max_wall_min
 
 
@@ -60,16 +89,19 @@ class WallClock:
     of training have elapsed. Either 0 = off. Iteration-based `save_interval` keeps working alongside."""
 
     def __init__(self, runner: OnPolicyRunner, snapshot_min: float, max_wall_min: float) -> None:
-        self.runner, self._log = runner, runner.log
+        self.runner = runner
+        self._log_owner = runner if hasattr(runner, "log") else runner.logger
+        self._log = self._log_owner.log
         self.snapshot_s, self.max_wall_s = snapshot_min * 60, max_wall_min * 60
         self.t0 = self.last_snapshot = time.time()
         self.stopped = False
-        runner.log = self
+        self._log_owner.log = self
 
-    def __call__(self, locs: dict, *a, **k) -> None:
-        self._log(locs, *a, **k)
+    def __call__(self, *a, **k) -> None:
+        self._log(*a, **k)
         now, it = time.time(), self.runner.current_learning_iteration
-        path = os.path.join(self.runner.log_dir, f"model_{it}.pt")
+        log_dir = getattr(self.runner, "log_dir", None) or self.runner.logger.log_dir
+        path = os.path.join(log_dir, f"model_{it}.pt")
         if self.snapshot_s and now - self.last_snapshot >= self.snapshot_s:
             self.runner.save(path)
             self.last_snapshot = now

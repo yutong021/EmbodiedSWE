@@ -139,7 +139,7 @@ class PenHolderTunedReward(TaskReward):
         axis_w = local_axis(qk, 2)
         across = torch.cross(axis_w, down, dim=-1) * torch.tensor([1.0, 1.0, 0.0], device=pos.device)
         across = torch.where(across.norm(dim=-1, keepdim=True) < 1e-3, torch.tensor([0.0, 1.0, 0.0], device=pos.device).expand(n, 3), across)
-        hand_y = local_axis(self.env.robot.articulation.data.body_quat_w[:, self._hand_idx], 1)
+        hand_y = local_axis(self.env.robot.articulation.data.body_quat_w.torch[:, self._hand_idx], 1)
         across = torch.where((across * hand_y).sum(-1, keepdim=True) < 0, -across, across)
         t_pos, t_quat = hand_target_from_axes(pk, down, across, pinch_offset=self.PINCH_OFFSET)
         reach = reach_kernel(keypoint_distance(self.env, t_pos, t_quat))
@@ -250,14 +250,14 @@ class PenTunedEnv(RoboBenchEnv):
         sc, task = self.env.scene, self.reward_fn.task
         n, dev = self.num_envs, self.device
         sel = torch.rand(n, device=dev) < frac
-        hand_y = local_axis(self.env.robot.articulation.data.body_quat_w[:, task._hand_idx], 1)
+        hand_y = local_axis(self.env.robot.articulation.data.body_quat_w.torch[:, task._hand_idx], 1)
         yaw = torch.atan2(hand_y[:, 0], -hand_y[:, 1])  # pen axis = hand_y rotated 90 deg about z
         c45, half = math.cos(math.pi / 4), yaw / 2
         for i, b in enumerate(sc.pens.values()):
             m = sel & (k == i) & sc.present[:, i]
             if m.any():
-                st = b.data.root_state_w[m].clone()
-                st[:, 3], st[:, 4], st[:, 5], st[:, 6] = torch.cos(half[m]) * c45, -torch.sin(half[m]) * c45, torch.cos(half[m]) * c45, torch.sin(half[m]) * c45
+                st = b.data.root_state_w.torch[m].clone()
+                st[:, 3], st[:, 4], st[:, 5], st[:, 6] = -torch.sin(half[m]) * c45, torch.cos(half[m]) * c45, torch.sin(half[m]) * c45, torch.cos(half[m]) * c45
                 st[:, 7:] = 0.0
                 b.write_root_state_to_sim(st, m.nonzero(as_tuple=False).squeeze(-1))
 
@@ -279,7 +279,7 @@ class PenTunedEnv(RoboBenchEnv):
         if at == "mix":
             over_holder = torch.rand(n, device=dev) < 0.5
         lift = sc.cfg.holder_h / 2 + 0.03 + float(sc._half_l[0])
-        t_holder = sc.holder.data.root_pos_w + torch.tensor([0.0, 0.0, lift + task.PINCH_OFFSET], device=dev)
+        t_holder = sc.holder.data.root_pos_w.torch + torch.tensor([0.0, 0.0, lift + task.PINCH_OFFSET], device=dev)
         t_pen = sc._pen_tensors()[0][idx, k] + torch.tensor([0.0, 0.0, 0.05 + task.PINCH_OFFSET], device=dev)
         target = torch.where(over_holder[:, None], t_holder, t_pen)
         self._in_preroll = True
@@ -292,14 +292,14 @@ class PenTunedEnv(RoboBenchEnv):
         from isaaclab.utils.math import quat_from_matrix
 
         pinch = pinch_point(self.env, task.PINCH_OFFSET)
-        hq = self.env.robot.articulation.data.body_quat_w[:, task._hand_idx]
+        hq = self.env.robot.articulation.data.body_quat_w.torch[:, task._hand_idx]
         st = torch.zeros(n, 13, device=dev)
         st[:, 0:3] = pinch
         hy, hz = local_axis(hq, 1), local_axis(hq, 2)
         ax = torch.cross(hy, hz, dim=-1)  # pen axis across the finger-opening axis (hand y), in the pad plane
         q_flat = quat_from_matrix(torch.stack([hy, torch.cross(ax, hy, dim=-1), ax], dim=-1))
         q_up = torch.zeros(n, 4, device=dev)
-        q_up[:, 0] = 1.0  # identity: pen +z (the tip) up
+        q_up[:, 3] = 1.0  # identity xyzw: pen +z (the tip) up
         st[:, 3:7] = torch.where(over_holder[:, None], q_up, q_flat)
         for i, b in enumerate(sc.pens.values()):
             m = sel & (k == i) & sc.present[:, i]

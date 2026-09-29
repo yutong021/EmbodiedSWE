@@ -43,7 +43,7 @@ class SliceDenseReward(TaskReward):
 
         sc = self.scene
         n = self.env.num_envs
-        kp, kq = sc.knife.data.root_pos_w, sc.knife.data.root_quat_w
+        kp, kq = sc.knife.data.root_pos_w.torch, sc.knife.data.root_quat_w.torch
         pinch = pinch_point(self.env)
         handle = kp + quat_apply(kq, torch.tensor(self.HANDLE_LOCAL, device=kp.device).expand(n, 3))
         reach = reach_kernel((handle - pinch).norm(dim=-1))
@@ -129,7 +129,7 @@ class SliceTunedReward(TaskReward):
 
         sc = self.scene
         n = self.env.num_envs
-        kp, kq = sc.knife.data.root_pos_w, sc.knife.data.root_quat_w
+        kp, kq = sc.knife.data.root_pos_w.torch, sc.knife.data.root_quat_w.torch
         pinch = pinch_point(self.env)
         handle = kp + quat_apply(kq, torch.tensor(self.HANDLE_LOCAL, device=kp.device).expand(n, 3))
         d_handle = (handle - pinch).norm(dim=-1)
@@ -239,7 +239,7 @@ class SliceTunedEnv(RoboBenchEnv):
         art = self.env.robot.articulation
         ee = list(art.data.body_names).index(self.env.robot.EE_BODY)
         jd = self.action_map
-        J = art.root_physx_view.get_jacobians()[:, ee - 1, 0:3, :][:, :, jd.jd_joint_ids]  # fixed base: body idx - 1
+        J = art.data.body_link_jacobian_w.torch[:, ee - 1, 0:3, :][:, :, jd.jd_joint_ids]  # fixed base: body idx - 1
         err = (target - art.data.body_pos_w[:, ee]).clamp(-0.08, 0.08)  # 8 cm step cap
         lam = 0.05
         JJt = J @ J.transpose(1, 2) + lam**2 * torch.eye(3, device=self.device)

@@ -23,7 +23,7 @@ def hand_pose(env) -> tuple[torch.Tensor, torch.Tensor]:
     robot = env.robot
     art = robot.articulation
     idx = art.data.body_names.index(robot.EE_BODY)
-    return art.data.body_pos_w[:, idx], art.data.body_quat_w[:, idx]
+    return art.data.body_pos_w.torch[:, idx], art.data.body_quat_w.torch[:, idx]
 
 
 def pinch_point(env, offset: float | None = None) -> torch.Tensor:
@@ -53,7 +53,7 @@ def finger_positions(env) -> torch.Tensor:
     if art is None or not pats:
         return torch.zeros(env.num_envs, 1, device=env.device)
     ids = art.find_joints(list(pats))[0]
-    return art.data.joint_pos[:, ids]
+    return art.data.joint_pos.torch[:, ids]
 
 
 def grasp_term_fingers(pinch_dist: torch.Tensor, fingers: torch.Tensor, part_width: float, near: float = 0.03,
@@ -77,7 +77,7 @@ KEYPOINT_OFFSETS = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.05), (0.0, 0.05, 0.0))
 
 def hand_target_from_axes(grasp_point: torch.Tensor, approach_w: torch.Tensor, open_w: torch.Tensor,
                           pinch_offset: float = PANDA_PINCH_OFFSET) -> tuple[torch.Tensor, torch.Tensor]:
-    """Nominal hand pose (pos (n,3), quat wxyz (n,4)) that puts the pinch point on `grasp_point` with the
+    """Nominal hand pose (pos (n,3), quat xyzw (n,4)) that puts the pinch point on `grasp_point` with the
     hand's approach axis (+z) along `approach_w` and its finger-opening axis (+y, panda) along `open_w`
     (both world, (n,3); `open_w` is re-orthogonalised against the approach)."""
     from isaaclab.utils.math import quat_from_matrix

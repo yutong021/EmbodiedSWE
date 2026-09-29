@@ -20,6 +20,11 @@ ROOT_STATE_W = 13  # Isaac root state: pos3 quat4 linvel3 angvel3
 POSE_W = 7  # pos3 quat4
 
 
+def _as_tensor(value: Any) -> Any:
+    """Unwrap Isaac Lab 3.0 EA ProxyArray values while keeping torch tensors unchanged."""
+    return value if torch.is_tensor(value) else getattr(value, "torch", value)
+
+
 def _walk(d: dict, prefix: str = "") -> Iterator[tuple[str, Any]]:
     for k in sorted(d):
         v = d[k]
@@ -39,7 +44,7 @@ class StateObs:
         self.action_dim = int(action_dim) if action_dim is not None else int(env.robot.action_dim)
         self.drop = tuple(drop_keys)
         self.env_local, self.with_ee, self.with_last_action = env_local, ee_pose, last_action
-        self.origins = env.iscene.env_origins  # (n, 3)
+        self.origins = _as_tensor(env.iscene.env_origins)  # (n, 3)
         self._ee_idx = self._resolve_ee()
         self.layout: list[tuple[str, int, int]] = []
         self.dim = 0
@@ -78,6 +83,7 @@ class StateObs:
         n = env.num_envs
         parts: list[tuple[str, torch.Tensor]] = []
         for name, v in _walk(env.get_states()):
+            v = _as_tensor(v)
             if self._dropped(name) or not torch.is_tensor(v):
                 continue
             if v.dim() == 0 or v.shape[0] != n:
@@ -86,11 +92,12 @@ class StateObs:
         if self._ee_idx is not None:
             d = env.robot.articulation.data
             i = self._ee_idx
-            ee_pos = d.body_pos_w[:, i] - self.origins.to(d.body_pos_w.device)
+            body_pos_w = _as_tensor(d.body_pos_w)
+            ee_pos = body_pos_w[:, i] - self.origins.to(body_pos_w.device)
             parts.append(("ee.pos", ee_pos))
-            parts.append(("ee.quat", d.body_quat_w[:, i]))
-            parts.append(("ee.lin_vel", d.body_lin_vel_w[:, i]))
-            parts.append(("ee.ang_vel", d.body_ang_vel_w[:, i]))
+            parts.append(("ee.quat", _as_tensor(d.body_quat_w)[:, i]))
+            parts.append(("ee.lin_vel", _as_tensor(d.body_lin_vel_w)[:, i]))
+            parts.append(("ee.ang_vel", _as_tensor(d.body_ang_vel_w)[:, i]))
         if self.with_last_action:
             parts.append(("last_action", last_action.reshape(n, -1).float()))
         if not self.layout:

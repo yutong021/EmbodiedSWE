@@ -97,7 +97,7 @@ class ActionMap:
             a = full
         out = self.lo + (a + 1.0) * 0.5 * (self.hi - self.lo)
         if self.jd_dims:
-            q = env.robot.articulation.data.joint_pos[:, self.jd_joint_ids]
+            q = env.robot.articulation.data.joint_pos.torch[:, self.jd_joint_ids]
             out = out.clone()
             out[:, self.jd_dims] = (q + a[:, self.jd_dims] * self.jd_scale).clamp(self.jd_lim[:, 0], self.jd_lim[:, 1])
         return out
@@ -189,7 +189,7 @@ class RoboBenchEnv(VecEnv):
         arm = ctrl.controllers[0] if hasattr(ctrl, "controllers") else ctrl
         pos_scale = float(getattr(getattr(arm, "cfg", None), "pos_scale", 0.02))
         a = torch.zeros(self.num_envs, self.num_actions, device=self.device)
-        a[:, 0:3] = ((target - art.data.body_pos_w[:, ee]) / pos_scale).clamp(-1.0, 1.0) * warm[:, None].float()
+        a[:, 0:3] = ((target - art.data.body_pos_w.torch[:, ee]) / pos_scale).clamp(-1.0, 1.0) * warm[:, None].float()
         a[:, 6:] = 1.0  # fingers open (arm dims first, gripper last — every preset here)
         return a
 
