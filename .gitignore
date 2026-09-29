@@ -244,6 +244,9 @@ artifacts/
 *.mp4
 rl/runs/
 
+# Isaac Sim 6.1 smoke output (scripts/isaacsim61/*, default ESW61_OUT)
+/logs/
+
 # lerobot venv (scripts/bootstrap_lerobot.sh) — py3.12, separate from the Isaac .venv
 .venv-lerobot/
 

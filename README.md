@@ -10,6 +10,8 @@
   <a href="#"><img src="https://img.shields.io/badge/Blog-coming%20soon-6f42c1?style=for-the-badge&logo=rss&logoColor=white" alt="Blog"></a>
 </p>
 
+> **Branch `isaacsim-6.1`:** partial port to Isaac Sim 6.1 / Isaac Lab 3.0 EA. Setup, per-task status and known issues: [docs/isaac_sim_6_1.md](docs/isaac_sim_6_1.md).
+
 EmbodiedSWE studies how frontier coding agents can help robotics. It has four parts:
 
 - **EmbodiedSWE-Bench**, an agent-native benchmark of long-horizon, dexterous everyday tasks, built on Isaac Lab.
