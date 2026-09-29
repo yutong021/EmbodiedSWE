@@ -26,6 +26,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -92,10 +93,10 @@ class PcGpuRamAssemblySceneCfg(BaseCfg):
     # defaults' rationale — a gripper env instead stages every part upright in a foam holder).
     card_init_xy: tuple[float, float] = (0.28, 0.0)
     card_init_z: float = 0.0022
-    card_init_quat: tuple[float, float, float, float] = (0.70711, 0.70711, 0.0, 0.0)  # flat
+    card_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.0, 0.70711)  # flat
     ram_init_xy: tuple[tuple[float, float], ...] = ((0.27, -0.085), (0.27, 0.085))
     ram_init_z: float = 0.0042
-    ram_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.70711, 0.0)  # flat
+    ram_init_quat: tuple[float, float, float, float] = (0.0, 0.70711, 0.0, 0.70711)  # flat
     card_contact_offset: float = 0.0001  # well below the 0.15 mm/side channel grips
     ram_contact_offset: float = 0.0001
     case_contact_offset: float = 0.0001
@@ -116,10 +117,10 @@ class PcGpuRamAssemblySceneCfg(BaseCfg):
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.55, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.55, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Asset USDs; empty -> the prebuilt assets committed under `assets/`.
@@ -283,7 +284,7 @@ class PcGpuRamAssemblyScene(BaseScene):
             y0, y1 = self.CARD_BODY_Y
             half_gap = 0.5 * (y1 - y0) + c.card_stand_gap
             rail_h, rail_t = 0.055, 0.008
-            if abs(c.card_init_quat[3]) > 0.5:  # staged yawed 90 deg about z (local +y -> -x)
+            if abs(c.card_init_quat[2]) > 0.5:  # staged yawed 90 deg about z (local +y -> -x)
                 mid_x = wx + cx - 0.5 * (y0 + y1)
                 stand("card_stand_floor", (0.062, 0.11, c.card_init_z),
                       (mid_x, wy + cy, c.surface_z + 0.5 * c.card_init_z))
@@ -308,7 +309,7 @@ class PcGpuRamAssemblyScene(BaseScene):
             x0, x1 = self.STICK_BODY_X
             half_gap = 0.5 * (x1 - x0) + c.ram_stand_gap
             rail_h, rail_t, stand_l = 0.018, 0.008, 0.130
-            rot90 = abs(c.ram_init_quat[3]) > 0.5  # staged yawed 90 deg about z
+            rot90 = abs(c.ram_init_quat[2]) > 0.5  # staged yawed 90 deg about z
             for k, (ix, iy) in enumerate(c.ram_init_xy):
                 if rot90:
                     mid_y = wy + iy + 0.5 * (x0 + x1)
@@ -385,9 +386,9 @@ class PcGpuRamAssemblyScene(BaseScene):
 
     def _set_friction(self, asset, value: float) -> None:
         """Overwrite the static + dynamic friction on every shape of `asset` (across all envs)."""
-        mats = asset.root_physx_view.get_material_properties()
+        mats = physx_view(asset).get_material_properties()
         mats[..., 0:2] = value  # [static, dynamic, restitution]
-        asset.root_physx_view.set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
+        physx_view(asset).set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
 
     def reset(self, env_ids: torch.Tensor) -> None:
         """Fresh, unassembled start: the case pinned at spawn, the card and both sticks loose on

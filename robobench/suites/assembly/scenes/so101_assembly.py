@@ -138,11 +138,11 @@ class SO101SceneCfg(BaseCfg):
         (-0.1228, 0.0052, 0.0428),   # far pair: the ring-boss holes through the +Z wall
         (-0.1023, 0.0052, 0.0428),
     )
-    elbow_screw_seat_quats: tuple[tuple[float, float, float, float], ...] = (
-        (0.0, 0.0, 1.0, 0.0),  # near: screw +Z (out of the head) -> link -Z
-        (0.0, 0.0, 1.0, 0.0),
-        (1.0, 0.0, 0.0, 0.0),  # far: screw +Z -> link +Z
-        (1.0, 0.0, 0.0, 0.0),
+    elbow_screw_seat_quats: tuple[tuple[float, float, float, float], ...] = (  # xyzw
+        (0.0, 1.0, 0.0, 0.0),  # near: screw +Z (out of the head) -> link -Z
+        (0.0, 1.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0, 1.0),  # far: screw +Z -> link +Z
+        (0.0, 0.0, 0.0, 1.0),
     )
     # free spawn xy of each loose screw (env frame, resting on the workbench top; z from
     # the asset), clustered on the bench's SW quarter
@@ -154,7 +154,7 @@ class SO101SceneCfg(BaseCfg):
     # at joint zero. The lower_arm origin sits ON the elbow axis, so this pose is also where the
     # pre-authored elbow JOINT is framed.
     elbow_lower_arm_seat_pos: tuple[float, float, float] = (-0.11257, -0.028, 0.0)
-    elbow_lower_arm_seat_quat: tuple[float, float, float, float] = (0.7071068, 0.0, 0.0, 0.7071068)
+    elbow_lower_arm_seat_quat: tuple[float, float, float, float] = (0.0, 0.0, 0.7071068, 0.7071068)
     # Fastening the horn screws doesn't weld the forearm rigid — it closes the REAL elbow
     # joint: a revolute about the horn axis, driven with the URDF elbow_flex servo drive.
     # Enabled while any horn screw is fastened; command it via set_elbow_target().
@@ -176,29 +176,29 @@ class SO101SceneCfg(BaseCfg):
         (0.00498, 0.00495, -0.0066), (-0.00490, 0.00495, -0.0066),
         (0.00497, -0.00497, 0.0431), (-0.00495, -0.00498, 0.0431),     # far (case-back) side
         (0.00498, 0.00495, 0.0431), (-0.00490, 0.00495, 0.0431))
-    elbow_horn_screw_seat_quats: tuple[tuple[float, float, float, float], ...] = (
-        (0.0, 0.0, 1.0, 0.0), (0.0, 0.0, 1.0, 0.0),    # near: screw +Z (out of head) -> link -Z
-        (0.0, 0.0, 1.0, 0.0), (0.0, 0.0, 1.0, 0.0),
-        (1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0),    # far: screw +Z -> link +Z
-        (1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0))
+    elbow_horn_screw_seat_quats: tuple[tuple[float, float, float, float], ...] = (  # xyzw
+        (0.0, 1.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0),    # near: screw +Z (out of head) -> link -Z
+        (0.0, 1.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0, 1.0),    # far: screw +Z -> link +Z
+        (0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0, 1.0))
     # eight loose M3s spawn (one per horn-line hole): two beside the M2 cluster, the
     # other six in spare-parts rows on the bench's NW corner
     horn_screw_spawn_pts: tuple[tuple[float, float], ...] = (
         (0.30, -0.32), (0.38, -0.32),
         (0.08, 0.24), (0.15, 0.24), (0.22, 0.24),
         (0.08, 0.30), (0.15, 0.30), (0.22, 0.30))
-    # free-part spawn poses (env-frame xy, orientation wxyz, height above the surface)
+    # free-part spawn poses (env-frame xy, orientation xyzw, height above the surface)
     # the servo stands on its insertion face SW of the workpiece
     motor_spawn: tuple[float, float] = (0.26, -0.41)
-    motor_spawn_quat: tuple[float, float, float, float] = (0.5, -0.5, 0.5, -0.5)
+    motor_spawn_quat: tuple[float, float, float, float] = (-0.5, 0.5, -0.5, 0.5)
     motor_spawn_z: float = 0.012
     # the drill lies on its side, south of the workpiece
     drill_spawn: tuple[float, float] = (0.30, -0.20)
-    drill_spawn_quat: tuple[float, float, float, float] = (0.46777, -0.53056, 0.47276, 0.52555)
+    drill_spawn_quat: tuple[float, float, float, float] = (-0.53056, 0.47276, 0.52555, 0.46777)
     drill_spawn_z: float = 0.028
     # the distal (forearm..gripper) rests on the bench's NE quarter, horn-cup side up
     distal_spawn: tuple[float, float] = (0.72, 0.14)
-    distal_spawn_quat: tuple[float, float, float, float] = (0.0, 0.36650, -0.93042, 0.0)
+    distal_spawn_quat: tuple[float, float, float, float] = (0.36650, -0.93042, 0.0, 0.0)
     distal_spawn_z: float = 0.05
     # the part arrives with its wrist ROLLED: the gripper/jaw structure is offset to
     # one side of the forearm tube, and rolled over that offset points up instead of
@@ -228,11 +228,11 @@ class SO101SceneCfg(BaseCfg):
     # 0.075) puts the top at x [-0.50, 0.78], y [-0.38, 0.53].
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.0, "pos": (0.30, 0.075),
+                      "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.0, "pos": (0.30, 0.075),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         # packing top (root xform is identity): +/-1.237 x +/-0.381 about the origin
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.2, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.2, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     asset_dir: str = ""
@@ -493,7 +493,7 @@ class SO101AssemblyScene(BaseScene):
             lj.CreateAxisAttr("Z")  # the horn axis — the servo's output DOF
             lj.CreateLocalPos0Attr(Gf.Vec3f(*c.elbow_lower_arm_seat_pos))
             q = c.elbow_lower_arm_seat_quat
-            lj.CreateLocalRot0Attr(Gf.Quatf(q[0], Gf.Vec3f(*q[1:])))
+            lj.CreateLocalRot0Attr(Gf.Quatf(q[3], Gf.Vec3f(*q[:3])))  # cfg quats are xyzw; USD is real-first
             lj.CreateLocalPos1Attr(Gf.Vec3f(0.0, 0.0, 0.0))
             lj.CreateLocalRot1Attr(Gf.Quatf(1.0, 0.0, 0.0, 0.0))
             lj.CreateLowerLimitAttr(-c.elbow_joint_limit_deg)
@@ -519,7 +519,7 @@ class SO101AssemblyScene(BaseScene):
             # quat; z rides the workbench top
             st = torch.zeros(m, 13, device=dev)
             st[:, 0:3] = origin + surf + torch.tensor(pos, device=dev)
-            st[:, 3] = 1.0
+            st[:, 6] = 1.0
             body.write_root_state_to_sim(st, env_ids)
 
         place(self.proximal, (0.0, 0.0, 0.0))  # free floating arm at the origin
@@ -847,7 +847,7 @@ class SO101AssemblyScene(BaseScene):
         first = grab_new & (grab_new.cumsum(dim=1) == 1)  # at most one new screw per env
         self.attached |= first
         self.attached &= ~taken  # a fastened screw leaves the bit
-        q_align = torch.tensor((0.7071068, 0.7071068, 0.0, 0.0), device=sp.device)  # +Z -> -Y
+        q_align = torch.tensor((0.7071068, 0.0, 0.0, 0.7071068), device=sp.device)  # xyzw; +Z -> -Y
         for s in range(ns):
             carry = self.attached[:, s] & ~driving[:, s]
             if not carry.any():
@@ -867,7 +867,7 @@ class SO101AssemblyScene(BaseScene):
             pos = seats[idx, h] + t_new.unsqueeze(-1) * axis[idx, h]
             half = 0.5 * self.spin_ang[idx, s]
             zero = torch.zeros_like(half)
-            q_spin = torch.stack([half.cos(), zero, zero, half.sin()], dim=-1)
+            q_spin = torch.stack([zero, zero, half.sin(), half.cos()], dim=-1)
             quat = quat_mul(quat_mul(link_q[idx, h], self._seat_quats_all[h]), q_spin)
             st = torch.cat([pos, quat, torch.zeros(len(idx), 6, device=pos.device)], dim=-1)
             self.screws[s].write_root_state_to_sim(st, idx)
@@ -944,7 +944,7 @@ class SO101AssemblyScene(BaseScene):
                 seat = c.elbow_horn_screw_seat_pts[hole - ne]
                 q = c.elbow_horn_screw_seat_quats[hole - ne]
             j.CreateLocalPos0Attr(Gf.Vec3f(*seat))
-            j.CreateLocalRot0Attr(Gf.Quatf(q[0], Gf.Vec3f(*q[1:])))
+            j.CreateLocalRot0Attr(Gf.Quatf(q[3], Gf.Vec3f(*q[:3])))
         j.GetJointEnabledAttr().Set(on)
         self.fastened[env_i, screw] = hole if on else -1
         f = self.fastened[env_i]
@@ -974,9 +974,9 @@ class SO101AssemblyScene(BaseScene):
         from isaaclab.utils.math import quat_conjugate, quat_error_magnitude, quat_mul
 
         rel = quat_mul(quat_conjugate(la_seat_q), lq)
-        half = torch.atan2(rel[:, 3], rel[:, 0])
+        half = torch.atan2(rel[:, 2], rel[:, 3])
         zero = torch.zeros_like(half)
-        qz = torch.stack([half.cos(), zero, zero, half.sin()], dim=-1)
+        qz = torch.stack([zero, zero, half.sin(), half.cos()], dim=-1)
         return qz, quat_error_magnitude(rel, qz)
 
     # ----- state (full, restorable) -------------------------------------------------------------

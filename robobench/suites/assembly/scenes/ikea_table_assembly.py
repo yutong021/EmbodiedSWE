@@ -68,7 +68,7 @@ class IkeaTableAssemblySceneCfg(BaseCfg):
     leg_row_y: float = -0.03  # [TUNE: reach] more negative = toward the robot
     leg_spacing: float = 0.12  # [TUNE: spread] x gap between adjacent legs (leg k at x0 + k*spacing, +x)
     leg_init_z: float = 0.022  # [TUNE: to the asset] leg-origin height above the surface when lying (~radius)
-    leg_init_quat: tuple[float, float, float, float] = (2 ** -0.5, 2 ** -0.5, 0.0, 0.0)  # [TUNE] wxyz; 90° about x -> lying
+    leg_init_quat: tuple[float, float, float, float] = (2 ** -0.5, 0.0, 0.0, 2 ** -0.5)  # [TUNE] xyzw; 90° about x -> lying
     # Tabletop: slid to the OPPOSITE side of the centre line from the legs (default -x), by `table_offset`
     # (studs move with it; `seated()` is measured in the table frame, so the offset is transparent).
     table_offset: tuple[float, float] = (-0.45, 0.0)  # [TUNE] tabletop xy offset from the workbench centre
@@ -208,7 +208,7 @@ class IkeaTableAssemblyScene(BaseScene):
         # Tabletop: upright, slid off the workbench centre by `table_offset`.
         tbl = torch.zeros(m, 13, device=dev)
         tbl[:, 0:3] = origin + torch.tensor((tx, ty, slab_top), device=dev)
-        tbl[:, 3] = 1.0  # identity quat
+        tbl[:, 6] = 1.0  # identity quat
         self.table.write_root_state_to_sim(tbl, env_ids)
 
         # Legs: each at its configured start pose (leg_init_xy/_z/_quat, workbench-relative) + a small
@@ -358,7 +358,7 @@ class IkeaTableAssemblyScene(BaseScene):
 
     def _weld_pair(self, env_i: int, leg_k: int, tp, tq, lp, lq) -> None:
         """Lock (env_i, leg_k) to the table at the relative pose implied by world poses tp/tq (table)
-        and lp/lq (leg). Each arg is a length-3 (pos) / length-4 (quat, wxyz) tensor."""
+        and lp/lq (leg). Each arg is a length-3 (pos) / length-4 (quat, xyzw) tensor."""
         from pxr import Gf, UsdPhysics
         from isaaclab.utils.math import quat_apply, quat_conjugate, quat_mul
 
@@ -370,7 +370,7 @@ class IkeaTableAssemblyScene(BaseScene):
         j.CreateLocalPos0Attr(Gf.Vec3f(0.0, 0.0, 0.0))
         j.CreateLocalRot0Attr(Gf.Quatf(1.0, 0.0, 0.0, 0.0))
         j.CreateLocalPos1Attr(Gf.Vec3f(*(float(v) for v in rel_pos.tolist())))
-        w, x, y, z = (float(v) for v in rel_rot.tolist())
+        x, y, z, w = (float(v) for v in rel_rot.tolist())
         j.CreateLocalRot1Attr(Gf.Quatf(w, Gf.Vec3f(x, y, z)))
         j.GetJointEnabledAttr().Set(True)
         self.welded[env_i, leg_k] = True

@@ -114,15 +114,15 @@ HOLD_HEIGHT = 0.08                              # base clamp height, near (lying
 HOLD_HEIGHT_FAR = 0.12                          # far (flipped) pose: just high enough that the
                                                 # flipped arm clears the table top, so the flip stays
                                                 # visually near the lying pose (no big jump)
-HOLD_QUAT = (0.7071068, 0.0, 0.7071068, 0.0)    # Ry(90): arm on its side, near holes facing up
-FLIP_QUAT = (0.0, 1.0, 0.0, 0.0)                # Rx(180) pre-rotation: far holes facing up
+HOLD_QUAT = (0.0, 0.7071068, 0.0, 0.7071068)    # xyzw; Ry(90): arm on its side, near holes facing up
+FLIP_QUAT = (1.0, 0.0, 0.0, 0.0)                # Rx(180) pre-rotation: far holes facing up
 # the servo, relative to the held base anchor: where it seats, and where it starts (out along -Y)
 SERVO_SEAT_POS = (0.1491, -0.0535, -0.0025)
-SERVO_SEAT_QUAT = (0.0, 0.0, 1.0, 0.0)
+SERVO_SEAT_QUAT = (0.0, 1.0, 0.0, 0.0)
 SERVO_START_OFFSET = 0.05
 CORRIDOR = 0.015    # the last stretch of the insertion (m): force-push down to here, then a
                     # centered kinematic slide to the seat (see phase B)
-DRILL_QUAT = (0.7071068, -0.7071068, 0.0, 0.0)  # drill working orientation: bit pointing down
+DRILL_QUAT = (-0.7071068, 0.0, 0.0, 0.7071068)  # drill working orientation: bit pointing down
 DRILL_PARK = (0.70, -0.2, 0.145)  # the drill's standby spot, used before every re-fixture
 # and at the end — it must clear the WHOLE assembled robot: with the distal attached the robot
 # reaches ~0.55 m from the base, and the finale sweeps it 180 deg. On the workbench top (its
@@ -330,7 +330,7 @@ def main() -> None:
         track_drill = False
         st = torch.zeros(n, 13, device=dev)
         st[:, 0:3] = origin + torch.tensor(DRILL_PARK, device=dev)
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         scene.drill.write_root_state_to_sim(st, None)
 
     def grab(joint2_deg: float, base_quat: torch.Tensor, height: float) -> None:
@@ -594,7 +594,7 @@ def main() -> None:
     def move_arm(dz: float, dx: float = 0.0, dy: float = 0.0, yaw: float = 0.0) -> None:
         arm_target_pos[:] = anchor + torch.tensor((dx, dy, dz), device=dev)
         half = 0.5 * yaw
-        qz = torch.tensor((math.cos(half), 0.0, 0.0, math.sin(half)), device=dev).expand(n, 4)
+        qz = torch.tensor((0.0, 0.0, math.sin(half), math.cos(half)), device=dev).expand(n, 4)
         arm_target_quat[:] = quat_mul(qz, lie_q)
 
     for j in range(sps):
@@ -616,7 +616,7 @@ def main() -> None:
         _, sq_ = scene.lower_arm_seat_w()
         qz_, _ = scene._elbow_angle_split(scene.distal.data.root_quat_w, sq_)
         elbow_max = max(elbow_max, abs(math.degrees(
-            2.0 * math.atan2(qz_[0, 3].item(), qz_[0, 0].item()))))
+            2.0 * math.atan2(qz_[0, 2].item(), qz_[0, 3].item()))))
     scene.set_elbow_target(0.0)
     step(sps // 2, "J elbow0")
     print(f"[J] elbow articulated to {elbow_max:.1f} deg and back", flush=True)

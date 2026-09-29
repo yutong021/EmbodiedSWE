@@ -29,6 +29,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -123,18 +124,18 @@ class PcMotherboardGpuRamAssemblySceneCfg(BaseCfg):
     bolt_row_y0: float = -0.27  # y of bolt0
     bolt_spacing: float = 0.09  # y gap between adjacent bolts
     bolt_init_z: float = 0.0065  # bolt-origin height when lying on its side (head rim + crest)
-    bolt_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.70711, 0.0)  # lying
+    bolt_init_quat: tuple[float, float, float, float] = (0.0, 0.70711, 0.0, 0.70711)  # lying
     key_init_xy: tuple[float, float] = (0.30, 0.40)  # key start xy (table-rel.)
     key_init_z: float = 0.004  # resting on a hex flat (apothem 3.1 mm) + margin
-    key_init_quat: tuple[float, float, float, float] = (0.70711, 0.70711, 0.0, 0.0)  # flat
+    key_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.0, 0.70711)  # flat
     key_disable_gravity: bool = False  # the force-driven key smoke sets this True (no hand
     # to bear the handle's weight)
     card_init_xy: tuple[float, float] = (0.28, 0.0)
     card_init_z: float = 0.0022
-    card_init_quat: tuple[float, float, float, float] = (0.70711, 0.70711, 0.0, 0.0)  # flat
+    card_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.0, 0.70711)  # flat
     ram_init_xy: tuple[tuple[float, float], ...] = ((0.27, -0.085), (0.27, 0.085))
     ram_init_z: float = 0.0042
-    ram_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.70711, 0.0)  # flat
+    ram_init_quat: tuple[float, float, float, float] = (0.0, 0.70711, 0.0, 0.70711)  # flat
     key_contact_offset: float = 0.00025  # collision contact offsets (m), set at spawn
     bolt_contact_offset: float = 0.00025
     card_contact_offset: float = 0.0001
@@ -158,10 +159,10 @@ class PcMotherboardGpuRamAssemblySceneCfg(BaseCfg):
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.55, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.55, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Asset USDs; empty -> the prebuilt assets committed under `assets/`.
@@ -419,7 +420,7 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
             y0, y1 = self.CARD_BODY_Y
             half_gap = 0.5 * (y1 - y0) + c.card_stand_gap
             rail_h, rail_t = 0.055, 0.008
-            if abs(c.card_init_quat[3]) > 0.5:  # staged yawed 90 deg about z (local +y -> -x)
+            if abs(c.card_init_quat[2]) > 0.5:  # staged yawed 90 deg about z (local +y -> -x)
                 mid_x = wx + cx - 0.5 * (y0 + y1)
                 stand("card_stand_floor", (0.062, 0.11, c.card_init_z),
                       (mid_x, wy + cy, c.surface_z + 0.5 * c.card_init_z))
@@ -443,7 +444,7 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
             x0, x1 = self.STICK_BODY_X
             half_gap = 0.5 * (x1 - x0) + c.ram_stand_gap
             rail_h, rail_t, stand_l = 0.018, 0.008, 0.130
-            rot90 = abs(c.ram_init_quat[3]) > 0.5  # staged yawed 90 deg about z
+            rot90 = abs(c.ram_init_quat[2]) > 0.5  # staged yawed 90 deg about z
             for k, (ix, iy) in enumerate(c.ram_init_xy):
                 if rot90:
                     mid_y = wy + iy + 0.5 * (x0 + x1)
@@ -490,31 +491,31 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
         ids = torch.arange(env.num_envs, device="cpu")
         if "case_friction" in values:
             col = torch.tensor(values["case_friction"], dtype=torch.float32).view(-1, 1, 1)
-            mats = self.case.root_physx_view.get_material_properties()
+            mats = physx_view(self.case).get_material_properties()
             mats[..., 0:2] = col  # [static, dynamic, restitution]
-            self.case.root_physx_view.set_material_properties(mats, ids)
+            physx_view(self.case).set_material_properties(mats, ids)
         if "key_friction" in values:
             col = torch.tensor(values["key_friction"], dtype=torch.float32).view(-1, 1, 1)
-            mats = self.key.root_physx_view.get_material_properties()
+            mats = physx_view(self.key).get_material_properties()
             mats[..., 0:2] = col
-            self.key.root_physx_view.set_material_properties(mats, ids)
+            physx_view(self.key).set_material_properties(mats, ids)
         if "card_friction" in values:
             col = torch.tensor(values["card_friction"], dtype=torch.float32).view(-1, 1, 1)
-            mats = self.card.root_physx_view.get_material_properties()
+            mats = physx_view(self.card).get_material_properties()
             mats[..., 0:2] = col
-            self.card.root_physx_view.set_material_properties(mats, ids)
+            physx_view(self.card).set_material_properties(mats, ids)
         if "bolt_friction" in values:
             col = torch.tensor(values["bolt_friction"], dtype=torch.float32).view(-1, 1, 1)
             for bolt in self.bolts:
-                mats = bolt.root_physx_view.get_material_properties()
+                mats = physx_view(bolt).get_material_properties()
                 mats[..., 0:2] = col
-                bolt.root_physx_view.set_material_properties(mats, ids)
+                physx_view(bolt).set_material_properties(mats, ids)
         if "ram_friction" in values:
             col = torch.tensor(values["ram_friction"], dtype=torch.float32).view(-1, 1, 1)
             for ram in self.rams:
-                mats = ram.root_physx_view.get_material_properties()
+                mats = physx_view(ram).get_material_properties()
                 mats[..., 0:2] = col
-                ram.root_physx_view.set_material_properties(mats, ids)
+                physx_view(ram).set_material_properties(mats, ids)
 
     def bind(self, env: BaseEnv) -> None:
         """Grab the case + part handles, cache env origins, and set the part frictions."""
@@ -731,7 +732,7 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
         from isaaclab.utils.math import quat_apply_inverse
 
         c = self.cfg
-        cp = self.case.data.root_pos_w  # (n, 3)
+        cp = self.case.data.root_pos_w.torch  # (n, 3)
         cq = self.case.data.root_quat_w  # (n, 4)
         holes = torch.tensor(c.hole_xy, device=cp.device)  # (H, 2)
         cols = []
@@ -850,7 +851,7 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
         from pxr import Usd, UsdPhysics
 
         p = obj.cfg.prim_path.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
-        root = p.replace("env_.*", f"env_{env_i}")
+        root = p.replace("env_[^/]+", f"env_{env_i}").replace("env_.*", f"env_{env_i}")  # 3.0 resolves the ns to env_[^/]+
         prim = self.env.stage.GetPrimAtPath(root)
         if not prim.IsValid():
             raise RuntimeError(f"[grasp-weld] part prim missing: {root}")
@@ -986,7 +987,7 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
         j = UsdPhysics.FixedJoint.Get(self.env.stage, self._gw_paths[env_i][s][k])
         p, q = rel_p.tolist(), rel_q.tolist()
         j.GetLocalPos0Attr().Set(Gf.Vec3f(p[0], p[1], p[2]))
-        j.GetLocalRot0Attr().Set(Gf.Quatf(q[0], Gf.Vec3f(q[1], q[2], q[3])))
+        j.GetLocalRot0Attr().Set(Gf.Quatf(q[3], Gf.Vec3f(q[0], q[1], q[2])))
         j.GetJointEnabledAttr().Set(True)
         return True
 
@@ -1089,8 +1090,8 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
 
     @staticmethod
     def _sj_yaw(q: torch.Tensor) -> torch.Tensor:
-        """Yaw about world +z of a wxyz quaternion batch, shape (n,)."""
-        return torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+        """Yaw about world +z of an xyzw quaternion batch, shape (n,)."""
+        return torch.atan2(2 * (q[:, 3] * q[:, 2] + q[:, 0] * q[:, 1]), 1 - 2 * (q[:, 1] ** 2 + q[:, 2] ** 2))  # xyzw
 
     def _screw_step(self) -> None:
         """Advance engaged joints from the key's measured spin. Runs every physics substep."""
@@ -1129,8 +1130,8 @@ class PcMotherboardGpuRamAssemblyScene(BaseScene):
             st = torch.zeros(len(rows), 7, device=turn.device)
             st[:, 0:2] = self._sj_holes[rows, b]
             st[:, 2] = self._sj_board_z[rows] - c.stage_depth - self.SCREW_PITCH * turn / (2 * math.pi)
-            st[:, 3] = torch.cos(yaw / 2)
-            st[:, 6] = torch.sin(yaw / 2)
+            st[:, 5] = torch.sin(yaw / 2)
+            st[:, 6] = torch.cos(yaw / 2)
             bolt.write_root_pose_to_sim(st, rows)
 
     def _screw_reset(self, env_ids: torch.Tensor) -> None:

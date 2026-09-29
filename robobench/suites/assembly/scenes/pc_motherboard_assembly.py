@@ -18,6 +18,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -93,10 +94,10 @@ class PcMotherboardAssemblySceneCfg(BaseCfg):
     bolt_row_y0: float = -0.27  # y of bolt0
     bolt_spacing: float = 0.09  # y gap between adjacent bolts
     bolt_init_z: float = 0.0065  # bolt-origin height when lying on its side (head rim + crest)
-    bolt_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.70711, 0.0)  # lying
+    bolt_init_quat: tuple[float, float, float, float] = (0.0, 0.70711, 0.0, 0.70711)  # lying
     key_init_xy: tuple[float, float] = (0.24, 0.38)  # key start xy (table-rel.)
     key_init_z: float = 0.004  # resting on a hex flat (apothem 3.1 mm) + margin
-    key_init_quat: tuple[float, float, float, float] = (0.70711, 0.70711, 0.0, 0.0)  # flat
+    key_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.0, 0.70711)  # flat
     key_mass: float = 0.10  # steel 6.25 mm long-series L-key, 210 mm arm (kg)
     key_disable_gravity: bool = False  # the force-driven key smoke sets this True (no hand to bear the handle's weight)
     # Optional upright stand (a four-wall pocket) that presents the key standing tip-down, its
@@ -114,10 +115,10 @@ class PcMotherboardAssemblySceneCfg(BaseCfg):
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Asset USDs; empty -> the prebuilt assets committed under `assets/`.
@@ -336,9 +337,9 @@ class PcMotherboardAssemblyScene(BaseScene):
 
     def _set_friction(self, asset, value: float) -> None:
         """Overwrite the static + dynamic friction on every shape of `asset` (across all envs)."""
-        mats = asset.root_physx_view.get_material_properties()
+        mats = physx_view(asset).get_material_properties()
         mats[..., 0:2] = value  # [static, dynamic, restitution]
-        asset.root_physx_view.set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
+        physx_view(asset).set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
 
     def reset(self, env_ids: torch.Tensor) -> None:
         """Fresh, unassembled start: the case pinned at spawn, bolts lying in a row beside it,
@@ -447,7 +448,7 @@ class PcMotherboardAssemblyScene(BaseScene):
         from isaaclab.utils.math import quat_apply_inverse
 
         c = self.cfg
-        cp = self.case.data.root_pos_w  # (n, 3)
+        cp = self.case.data.root_pos_w.torch  # (n, 3)
         cq = self.case.data.root_quat_w  # (n, 4)
         holes = torch.tensor(c.hole_xy, device=cp.device)  # (H, 2)
         cols = []
@@ -531,8 +532,8 @@ class PcMotherboardAssemblyScene(BaseScene):
 
     @staticmethod
     def _sj_yaw(q: torch.Tensor) -> torch.Tensor:
-        """Yaw about world +z of a wxyz quaternion batch, shape (n,)."""
-        return torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+        """Yaw about world +z of an xyzw quaternion batch, shape (n,)."""
+        return torch.atan2(2 * (q[:, 3] * q[:, 2] + q[:, 0] * q[:, 1]), 1 - 2 * (q[:, 1] ** 2 + q[:, 2] ** 2))  # xyzw
 
     def _screw_step(self) -> None:
         """Advance engaged joints from the key's measured spin. Runs every physics substep."""
@@ -571,8 +572,8 @@ class PcMotherboardAssemblyScene(BaseScene):
             st = torch.zeros(len(rows), 7, device=turn.device)
             st[:, 0:2] = self._sj_holes[rows, b]
             st[:, 2] = self._sj_board_z[rows] - c.stage_depth - self.SCREW_PITCH * turn / (2 * math.pi)
-            st[:, 3] = torch.cos(yaw / 2)
-            st[:, 6] = torch.sin(yaw / 2)
+            st[:, 5] = torch.sin(yaw / 2)
+            st[:, 6] = torch.cos(yaw / 2)
             bolt.write_root_pose_to_sim(st, rows)
 
     def _screw_reset(self, env_ids: torch.Tensor) -> None:

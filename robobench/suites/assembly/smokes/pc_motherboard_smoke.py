@@ -91,14 +91,14 @@ def _wrap(a: torch.Tensor) -> torch.Tensor:
     return (a + math.pi) % (2 * math.pi) - math.pi
 
 
-def yaw_of(quat_wxyz: torch.Tensor) -> torch.Tensor:
-    w, x, y, z = quat_wxyz.unbind(-1)
+def yaw_of(quat_xyzw: torch.Tensor) -> torch.Tensor:
+    x, y, z, w = quat_xyzw.unbind(-1)
     return torch.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 
 
-def up_axis_of(quat_wxyz: torch.Tensor) -> torch.Tensor:
+def up_axis_of(quat_xyzw: torch.Tensor) -> torch.Tensor:
     """World direction of the body's local +z, shape (n, 3)."""
-    w, x, y, z = quat_wxyz.unbind(-1)
+    x, y, z, w = quat_xyzw.unbind(-1)
     return torch.stack((2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)), dim=-1)
 
 
@@ -178,8 +178,8 @@ def main() -> None:
         kt = torch.zeros(n, 13, device=device)
         kt[:, 0:2] = holes_w[:, b]
         kt[:, 2] = bolts[b].data.root_pos_w[:, 2] + SOCKET_FLOOR_Z + KEY_TIP_HOVER
-        kt[:, 3] = torch.cos(yaw / 2)
-        kt[:, 6] = torch.sin(yaw / 2)
+        kt[:, 5] = torch.sin(yaw / 2)
+        kt[:, 6] = torch.cos(yaw / 2)
         key.write_root_state_to_sim(kt, ids)
 
     def key_wrench(f: torch.Tensor, t: torch.Tensor) -> None:

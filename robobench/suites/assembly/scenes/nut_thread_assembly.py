@@ -14,6 +14,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 from dataclasses import dataclass
 from pathlib import Path
 from robobench.core.assets import asset_path
@@ -64,7 +65,7 @@ class NutThreadAssemblySceneCfg(BaseCfg):
     nut_row_y: float = 0.0  # y of the row
     nut_spacing: float = 0.1  # x gap between adjacent nuts (nut k at x0 + k*spacing)
     nut_init_z: float = 0.02  # [TUNE: to the asset] nut-origin height above the surface when resting flat
-    nut_init_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; identity -> axis up
+    nut_init_quat: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; identity -> axis up
     # Selectable work surface. `table` picks a preset in `TABLES`; the three fields below default to it
     # when left None/empty, or override it (e.g. raise `surface_z` so a standing robot can reach).
     table: str = "lab_table"  # which work surface: "lab_table" | "packing"
@@ -72,14 +73,14 @@ class NutThreadAssemblySceneCfg(BaseCfg):
     workbench_pos: tuple[float, float] | None = None  # xy the table (and bolts) sit at; None -> preset
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     # Work-surface presets (vendored under assets/props/). Per table: usd (subdir, file), scale, orient
-    # (wxyz), surface_z (top height) + pos (xy) defaults, top_offset (top above the USD origin), height
+    # (xyzw), surface_z (top height) + pos (xy) defaults, top_offset (top above the USD origin), height
     # (top->feet, sinks the ground to the table's feet), kinematic (load as a fixed rigid body).
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Bolt + nut USDs. Empty -> the packaged M16 bolt (with head) and M16 nut under assets/factory/.
@@ -163,7 +164,7 @@ class NutThreadAssemblyScene(BaseScene):
                     ),
                 ),
                 init_state=ArticulationCfg.InitialStateCfg(
-                    pos=(wx + bx, wy + by, c.surface_z), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+                    pos=(wx + bx, wy + by, c.surface_z), rot=(0.0, 0.0, 0.0, 1.0), joint_pos={}, joint_vel={}
                 ),
                 actuators={},
             )
@@ -220,9 +221,9 @@ class NutThreadAssemblyScene(BaseScene):
 
     def _set_friction(self, asset, value: float) -> None:
         """Overwrite the static + dynamic friction on every shape of `asset` (across all envs)."""
-        mats = asset.root_physx_view.get_material_properties()
+        mats = physx_view(asset).get_material_properties()
         mats[..., 0:2] = value  # [static, dynamic, restitution]
-        asset.root_physx_view.set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
+        physx_view(asset).set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
 
     def reset(self, env_ids: torch.Tensor) -> None:
         """Fresh, unassembled start: the bolts stand upright on the table and the nuts rest flat on it

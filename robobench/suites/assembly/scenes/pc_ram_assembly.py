@@ -28,6 +28,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -97,7 +98,7 @@ class PcRamAssemblySceneCfg(BaseCfg):
     # case) on the table beside the case, end-to-end along y with a 34 mm tip gap.
     ram_init_xy: tuple[tuple[float, float], ...] = ((0.27, -0.085), (0.27, 0.085))
     ram_init_z: float = 0.0042  # origin height lying face-down (slab half 3.6 mm + pad)
-    ram_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.70711, 0.0)  # flat
+    ram_init_quat: tuple[float, float, float, float] = (0.0, 0.70711, 0.0, 0.70711)  # flat
     ram_contact_offset: float = 0.0001  # well below the 0.15 mm/side channel grip
     case_contact_offset: float = 0.0001  # ditto for the slot fixtures' walls
     # Optional foam holders (per stick: a floor pad + two rails flanking the 7.3 mm body slab)
@@ -115,10 +116,10 @@ class PcRamAssemblySceneCfg(BaseCfg):
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.55, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.55, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Asset USDs; empty -> the prebuilt assets committed under `assets/`.
@@ -356,9 +357,9 @@ class PcRamAssemblyScene(BaseScene):
 
     def _set_friction(self, asset, value: float) -> None:
         """Overwrite the static + dynamic friction on every shape of `asset` (across all envs)."""
-        mats = asset.root_physx_view.get_material_properties()
+        mats = physx_view(asset).get_material_properties()
         mats[..., 0:2] = value  # [static, dynamic, restitution]
-        asset.root_physx_view.set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
+        physx_view(asset).set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
 
     def apply_physical_params(self, env: BaseEnv, values: dict[str, list]) -> None:
         """Write a PHYSICAL_PARAMS draw PER ENV through the PhysX views: `values[name]` is one
@@ -369,14 +370,14 @@ class PcRamAssemblyScene(BaseScene):
             col = torch.tensor([float(v) for v in per_env], dtype=torch.float32)  # (n,)
             if name in ("ram_friction", "case_friction"):
                 for asset in (self.rams if name == "ram_friction" else [self.case]):
-                    mats = asset.root_physx_view.get_material_properties()  # (n, shapes, 3), cpu
+                    mats = physx_view(asset).get_material_properties()  # (n, shapes, 3), cpu
                     mats[..., 0:2] = col.view(-1, 1, 1).expand(mats.shape[0], mats.shape[1], 2)
-                    asset.root_physx_view.set_material_properties(mats, ids)
+                    physx_view(asset).set_material_properties(mats, ids)
             elif name == "ram_mass":
                 for ram in self.rams:
-                    masses = ram.root_physx_view.get_masses()  # (n, bodies), cpu
+                    masses = physx_view(ram).get_masses()  # (n, bodies), cpu
                     masses[:] = col.view(-1, 1).expand_as(masses)
-                    ram.root_physx_view.set_masses(masses, ids)
+                    physx_view(ram).set_masses(masses, ids)
             else:
                 raise KeyError(f"{type(self).__name__}.apply_physical_params: unknown knob {name!r}")
 
@@ -395,7 +396,7 @@ class PcRamAssemblyScene(BaseScene):
             pose[:, 0:3] = origin + torch.tensor(
                 (wx, wy, c.surface_z + c.case_lift), device=dev)
             pose[:, 0:2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.case_jitter_xy
-            pose[:, 3] = 1.0
+            pose[:, 6] = 1.0
             self.case.write_root_pose_to_sim(pose, env_ids)
 
         for ram, (ix, iy) in zip(self.rams, c.ram_init_xy):

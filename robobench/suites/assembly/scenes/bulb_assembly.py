@@ -10,6 +10,7 @@ inertia from the colliders and destabilise the screw). Goal (no task layer): scr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 from dataclasses import dataclass
 from pathlib import Path
 from robobench.core.assets import asset_path
@@ -73,7 +74,7 @@ class BulbAssemblySceneCfg(BaseCfg):
     bulb_init_z: float = 0.024  # bulb-origin DROP height above the surface; the lying bulb then settles
     # tilted ~25 deg (its Ø20 cap end droops to the table, origin ends ~5 mm up) — read the live pose, don't
     # assume a horizontal axis at this height.
-    bulb_init_quat: tuple[float, float, float, float] = (2 ** -0.5, 2 ** -0.5, 0.0, 0.0)  # wxyz; 90° about x -> lying
+    bulb_init_quat: tuple[float, float, float, float] = (2 ** -0.5, 0.0, 0.0, 2 ** -0.5)  # xyzw; 90° about x -> lying
     # Selectable work surface. `table` picks a preset in `TABLES`; the three fields below default to it
     # when left None/empty, or override it (e.g. raise `surface_z` so a standing robot can reach).
     table: str = "lab_table"  # which work surface: "lab_table" | "packing"
@@ -83,10 +84,10 @@ class BulbAssemblySceneCfg(BaseCfg):
     # Work-surface presets (vendored under assets/props/) — same set as nut_thread.
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Bulb + socket USDs. Empty -> the packaged standalone assets under assets/bulb/.
@@ -194,7 +195,7 @@ class BulbAssemblyScene(BaseScene):
                 prim_path="{ENV_REGEX_NS}/Socket_%d" % i,
                 spawn=sim_utils.UsdFileCfg(usd_path=c.socket_usd, activate_contact_sensors=True, rigid_props=high_iters),
                 init_state=ArticulationCfg.InitialStateCfg(
-                    pos=(wx + sx, wy + sy, c.surface_z), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+                    pos=(wx + sx, wy + sy, c.surface_z), rot=(0.0, 0.0, 0.0, 1.0), joint_pos={}, joint_vel={}
                 ),
                 actuators={},
             )
@@ -266,18 +267,18 @@ class BulbAssemblyScene(BaseScene):
         if "socket_friction" in values:
             col = torch.tensor(values["socket_friction"], dtype=torch.float32).view(-1, 1, 1)
             for s in self.sockets:
-                mats = s.root_physx_view.get_material_properties()
+                mats = physx_view(s).get_material_properties()
                 mats[..., 0:2] = col
-                s.root_physx_view.set_material_properties(mats, ids)
+                physx_view(s).set_material_properties(mats, ids)
         if "bulb_friction" in values or "bulb_glass_friction" in values:
             for b in self.bulbs:
-                mats = b.root_physx_view.get_material_properties()  # (n, n_shapes, 3)
+                mats = physx_view(b).get_material_properties()  # (n, n_shapes, 3)
                 glass = int(mats[0, :, 0].argmax())  # detect BEFORE writing (glass stays grippiest)
                 if "bulb_friction" in values:
                     mats[..., 0:2] = torch.tensor(values["bulb_friction"], dtype=torch.float32).view(-1, 1, 1)
                 if "bulb_glass_friction" in values:
                     mats[:, glass, 0:2] = torch.tensor(values["bulb_glass_friction"], dtype=torch.float32).view(-1, 1)
-                b.root_physx_view.set_material_properties(mats, ids)
+                physx_view(b).set_material_properties(mats, ids)
 
     def bind(self, env: BaseEnv) -> None:
         """Grab handles, cache env origins, and set part friction. Called once after the build (physx ready)."""

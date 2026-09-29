@@ -77,14 +77,14 @@ def _wrap(a: torch.Tensor) -> torch.Tensor:
     return (a + math.pi) % (2 * math.pi) - math.pi
 
 
-def yaw_of(quat_wxyz: torch.Tensor) -> torch.Tensor:
-    w, x, y, z = quat_wxyz.unbind(-1)
+def yaw_of(quat_xyzw: torch.Tensor) -> torch.Tensor:
+    x, y, z, w = quat_xyzw.unbind(-1)
     return torch.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 
 
-def up_axis_of(quat_wxyz: torch.Tensor) -> torch.Tensor:
+def up_axis_of(quat_xyzw: torch.Tensor) -> torch.Tensor:
     """World direction of the body's local +z, shape (n, 3)."""
-    w, x, y, z = quat_wxyz.unbind(-1)
+    x, y, z, w = quat_xyzw.unbind(-1)
     return torch.stack((2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)), dim=-1)
 
 
@@ -144,12 +144,12 @@ def main() -> None:
         st = torch.zeros(n, 13, device=device)
         st[:, 0:2] = hole_xy
         st[:, 2] = plat_z + plate_top + STAGE_GAP
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         bolt.write_root_state_to_sim(st, ids)
         kt = torch.zeros(n, 13, device=device)
         kt[:, 0:2] = hole_xy
         kt[:, 2] = st[:, 2] + SOCKET_FLOOR_Z + KEY_TIP_HOVER
-        kt[:, 3] = 1.0  # same hex clocking as the socket (both author corners at k*60 deg)
+        kt[:, 6] = 1.0  # same hex clocking as the socket (both author corners at k*60 deg)
         key.write_root_state_to_sim(kt, ids)
 
     def depth() -> torch.Tensor:  # bolt tip depth below the plate top (m), per env

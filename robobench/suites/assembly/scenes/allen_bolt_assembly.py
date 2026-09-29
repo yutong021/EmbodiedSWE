@@ -17,6 +17,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -86,7 +87,7 @@ class AllenBoltAssemblySceneCfg(BaseCfg):
     key_row_y: float = 0.0
     key_spacing: float = 0.1
     key_init_z: float = 0.0075  # resting on a hex flat (apothem 6.25 mm) + margin
-    key_init_quat: tuple[float, float, float, float] = (0.70711, 0.70711, 0.0, 0.0)  # wxyz; flat
+    key_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.0, 0.70711)  # xyzw; flat
     key_mass: float = 0.08  # steel 12.5 mm L-key (kg)
     key_disable_gravity: bool = False  # the force-driven key smoke sets this True (no hand to bear the handle's weight)
     # Contact offsets add PER PAIR: the key<->socket clearance is 0.75 mm/side, so the key's and the
@@ -96,7 +97,7 @@ class AllenBoltAssemblySceneCfg(BaseCfg):
     # engine default on its head SDF sealed the mouth outright.
     key_contact_offset: float = 0.0002
     bolt_contact_offset: float = 0.0002
-    bolt_init_quat: tuple[float, float, float, float] = (0.70711, 0.0, 0.70711, 0.0)  # wxyz; lying
+    bolt_init_quat: tuple[float, float, float, float] = (0.0, 0.70711, 0.0, 0.70711)  # xyzw; lying
     # Selectable work surface (same presets as the sibling scenes).
     table: str = "lab_table"  # which work surface: "lab_table" | "packing"
     surface_z: float | None = None  # table-top height (m); None -> the preset's
@@ -104,10 +105,10 @@ class AllenBoltAssemblySceneCfg(BaseCfg):
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     # Asset USDs; empty -> the prebuilt assets committed under `assets/`.
@@ -298,9 +299,9 @@ class AllenBoltAssemblyScene(BaseScene):
 
     def _set_friction(self, asset, value: float) -> None:
         """Overwrite the static + dynamic friction on every shape of `asset` (across all envs)."""
-        mats = asset.root_physx_view.get_material_properties()
+        mats = physx_view(asset).get_material_properties()
         mats[..., 0:2] = value  # [static, dynamic, restitution]
-        asset.root_physx_view.set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
+        physx_view(asset).set_material_properties(mats, torch.arange(self.env.num_envs, device="cpu"))
 
     def reset(self, env_ids: torch.Tensor) -> None:
         """Fresh, unassembled start: platforms pinned at spawn, bolts + keys lying on their sides
@@ -319,8 +320,8 @@ class AllenBoltAssemblyScene(BaseScene):
                 st[:, 0:3] = origin + torch.tensor(
                     (wx + px, wy + py, c.surface_z + c.plate_top - c.bolt_stage_depth), device=dev
                 )
-                st[:, 3] = math.cos(half)
-                st[:, 6] = math.sin(half)
+                st[:, 5] = math.sin(half)
+                st[:, 6] = math.cos(half)
                 bolt.write_root_state_to_sim(st, env_ids)
             part_rows = ((self.keys, c.key_init_xy, c.key_init_z, c.key_init_quat),)
         else:

@@ -49,9 +49,9 @@ STAGE_GAP = 0.0015  # staging gap (m) between bolt tip and plate top, just above
 SHOW_END, ASSEMBLE_END, END = 150, 5400, 5550
 
 
-def yaw_of(quat_wxyz: torch.Tensor) -> torch.Tensor:
-    """World yaw (rad) of wxyz quaternions, shape (n,)."""
-    w, x, y, z = quat_wxyz.unbind(-1)
+def yaw_of(quat_xyzw: torch.Tensor) -> torch.Tensor:
+    """World yaw (rad) of xyzw quaternions, shape (n,)."""
+    x, y, z, w = quat_xyzw.unbind(-1)
     return torch.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 
 
@@ -79,7 +79,7 @@ def main() -> None:
                 st = torch.zeros(n, 13, device=device)
                 st[:, 0:3] = plat_pos
                 st[:, 2] += scene.cfg.plate_top + STAGE_GAP  # bolt origin is its TIP
-                st[:, 3] = 1.0  # identity quat -> head up, thread down, aligned with the hole
+                st[:, 6] = 1.0  # identity quat -> head up, thread down, aligned with the hole
                 bolt.write_root_state_to_sim(st, all_ids)
                 if k == 0:
                     print(f"  staged | platform0 w={plat_pos[0].tolist()} bolt0 w={st[0, 0:3].tolist()}", flush=True)

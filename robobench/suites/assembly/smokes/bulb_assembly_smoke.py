@@ -76,7 +76,7 @@ def main() -> None:
                 st = torch.zeros(n, 13, device=device)
                 st[:, 0:3] = socket_pos
                 st[:, 2] += stage_gap
-                st[:, 3] = 1.0  # identity quat -> cap/thread down, screw axis up, aligned with the socket
+                st[:, 6] = 1.0  # identity quat -> cap/thread down, screw axis up, aligned with the socket
                 bulb.write_root_state_to_sim(st, all_ids)
         elif SHOW_END < i < ASSEMBLE_END:  # press + hold-on-axis + capped twist to screw each bulb in
             for k, bulb in enumerate(scene.bulbs):

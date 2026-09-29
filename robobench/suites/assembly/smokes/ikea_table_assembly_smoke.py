@@ -97,12 +97,12 @@ def main() -> None:
             if i == SHOW_END:  # ... then restore the pre-screwable pose: centre the tabletop, then
                 tbl = torch.zeros(n, 13, device=device)  # stand each leg upright on its (now centred) stud
                 tbl[:, 0:3] = env.iscene.env_origins + table_center
-                tbl[:, 3] = 1.0
+                tbl[:, 6] = 1.0
                 scene.table.write_root_state_to_sim(tbl, all_ids)
                 for k, leg in enumerate(scene.legs):
                     st = torch.zeros(n, 13, device=device)
                     st[:, 0:3] = env.iscene.env_origins + stud_xyz[k]
-                    st[:, 3] = 1.0
+                    st[:, 6] = 1.0
                     leg.write_root_state_to_sim(st, all_ids)
         elif i < ASSEMBLE_END:  # press + twist each leg onto its stud (the scene auto-welds on seat)
             for k, leg in enumerate(scene.legs):

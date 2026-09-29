@@ -161,7 +161,7 @@ for _mode in ("osc", "impedance", "diff_ik", "pink_ik", "joint"):
                 bolt_init_xy=tuple((-0.24 + k * 0.075, -0.42) for k in range(7)),
                 key_init_xy=(-0.24, -0.30),
                 key_init_z=0.001,
-                key_init_quat=(1.0, 0.0, 0.0, 0.0),
+                key_init_quat=(0.0, 0.0, 0.0, 1.0),
                 key_stand=True,
                 reset_pos_jitter=0.0,
             ),
@@ -184,7 +184,7 @@ _PC_MB_SCENE_KW = dict(
     bolt_init_xy=tuple((-0.24 + k * 0.075, -0.42) for k in range(7)),
     key_init_xy=(-0.24, -0.30),
     key_init_z=0.001,
-    key_init_quat=(1.0, 0.0, 0.0, 0.0),
+    key_init_quat=(0.0, 0.0, 0.0, 1.0),
     key_stand=True,
     reset_pos_jitter=0.0,
 )
@@ -278,11 +278,11 @@ for _mode in ("osc", "impedance", "diff_ik", "pink_ik", "joint"):
                 card_init_xy=(-0.185, -0.321),  # table-rel -> world (0.365, -0.321): the middle
                 # of the staging line, lengthwise between the sticks
                 card_init_z=0.030,  # tab-bottom plane = the holder's floor top
-                card_init_quat=(0.70711, 0.0, 0.0, 0.70711),  # upright, yawed 90 deg: staged
+                card_init_quat=(0.0, 0.0, 0.70711, 0.70711),  # upright, yawed 90 deg: staged
                 # parallel to the sticks; the carry rotates it back to its seated heading
                 ram_init_xy=((-0.26, -0.32), (-0.11, -0.32)),  # table-rel -> world
                 # (0.29/0.44, -0.32): flanking the card, all three parts parallel along y
-                ram_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                ram_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                 ram_init_z=0.030,  # blade-bottom plane = the holders' floor top
                 reset_pos_jitter=0.0,
                 card_stand=True,
@@ -290,7 +290,7 @@ for _mode in ("osc", "impedance", "diff_ik", "pink_ik", "joint"):
             ),
             robot="franka",
             robot_cfg=FrankaRobotCfg(
-                base_pos=(0.72, -0.30, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0)  # yaw 180: faces -x;
+                base_pos=(0.72, -0.30, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0)  # yaw 180: faces -x;
                 # 40 mm north with the case, the 154 mm rear foot points +x along the strip
             ),
             control_mode=mode,
@@ -314,7 +314,7 @@ _PC_GPU_RAM_ARMS = (
         # 0.56 keeps every pick at this short arm's proven 0.27+ m band and relieves the
         # far-slot fold
         base_pos=(0.56, -0.26, 0.0),
-        base_rot=(0.0, 0.0, 0.0, 1.0),
+        base_rot=(0.0, 0.0, 1.0, 0.0),
         default_dof_pos=(0.1629, 2.2989, -0.2511, 0.7993, -2.3822, -0.9424, -0.0279),
         arm_effort_limit=120.0,
         gravity_compensation=True,
@@ -326,7 +326,7 @@ _PC_GPU_RAM_ARMS = (
         # from there and this 1.3 m arm's elbow tops out at its limit folding that close
         # (measured: j3 pinned at +2.46, margin 0.15, hand 237 mm short); from here the
         # stick picks sit at 0.34-0.49 m and the in-case work at ~0.55 m — all comfortable
-        base_pos=(0.78, -0.34, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0),
+        base_pos=(0.78, -0.34, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0),
     )),
 )
 for _robot, _cfg_cls, _kw in _PC_GPU_RAM_ARMS:
@@ -340,9 +340,9 @@ for _robot, _cfg_cls, _kw in _PC_GPU_RAM_ARMS:
                     case_xy=(0.55, 0.04),
                     card_init_xy=(-0.185, -0.321),
                     card_init_z=0.030,
-                    card_init_quat=(0.70711, 0.0, 0.0, 0.70711),
+                    card_init_quat=(0.0, 0.0, 0.70711, 0.70711),
                     ram_init_xy=((-0.26, -0.32), (-0.11, -0.32)),
-                    ram_init_quat=(1.0, 0.0, 0.0, 0.0),
+                    ram_init_quat=(0.0, 0.0, 0.0, 1.0),
                     ram_init_z=0.030,
                     reset_pos_jitter=0.0,
                     card_stand=True,
@@ -380,13 +380,13 @@ for _mode in ("osc", "impedance", "diff_ik", "pink_ik", "joint"):
             scene_cfg=PcRamAssemblySceneCfg(
                 ram_init_xy=((-0.25, -0.36), (-0.13, -0.36)),  # table-rel -> world (0.30/0.42, -0.36)
                 ram_init_z=0.030,  # blade-bottom plane = the holders' floor top
-                ram_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                ram_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                 reset_pos_jitter=0.0,
                 ram_stand=True,
             ),
             robot="franka",
             robot_cfg=FrankaRobotCfg(
-                base_pos=(0.72, -0.34, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0)  # yaw 180: faces -x,
+                base_pos=(0.72, -0.34, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0)  # yaw 180: faces -x,
                 # the 154 mm rear foot points +x along the strip
             ),
             control_mode=mode,
@@ -434,7 +434,7 @@ for _robot in ("z1_lite6g", "rizon4_panda", "gen3n7_panda", "sawyer_egk25", "fes
                 scene_cfg=PcRamAssemblySceneCfg(
                     ram_init_xy=((-0.25, -0.36), (-0.13, -0.36)),  # table-rel -> world (0.30/0.42, -0.36)
                     ram_init_z=0.030,  # blade-bottom plane = the holders' floor top
-                    ram_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                    ram_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                     reset_pos_jitter=0.0,
                     ram_stand=True,
                 ),
@@ -442,7 +442,7 @@ for _robot in ("z1_lite6g", "rizon4_panda", "gen3n7_panda", "sawyer_egk25", "fes
                 # shared base placement (yaw 180: faces -x); per-robot dials may override it
                 # (the 0.74 m z1 sits closer to the cell)
                 robot_cfg=AttachedArmRobotCfg(
-                    **{"base_pos": (0.72, -0.34, 0.0), "base_rot": (0.0, 0.0, 0.0, 1.0),
+                    **{"base_pos": (0.72, -0.34, 0.0), "base_rot": (0.0, 0.0, 1.0, 0.0),
                        **_PC_RAM_COMPOSITE_KW[robot]},
                 ),
                 control_mode=mode,
@@ -465,14 +465,14 @@ for _mode in ("osc", "impedance", "joint"):
             scene_cfg=PcRamAssemblySceneCfg(
                 ram_init_xy=((-0.25, -0.36), (-0.13, -0.36)),  # table-rel -> world (0.30/0.42, -0.36)
                 ram_init_z=0.030,  # blade-bottom plane = the holders' floor top
-                ram_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                ram_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                 reset_pos_jitter=0.0,
                 ram_stand=True,
             ),
             robot="xarm7",
             robot_cfg=XArm7RobotCfg(
                 gripper="panda_hand",
-                base_pos=(0.60, -0.30, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0),
+                base_pos=(0.60, -0.30, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0),
                 arm_effort_limit=120.0,
                 gravity_compensation=True,  # gravity-blind task-space laws (the bulb binding's note)
                 default_dof_pos=(-0.0659, -0.3051, 0.0759, 0.6345, 0.0281, 0.9358, -0.0097),
@@ -489,13 +489,13 @@ for _mode in ("osc", "impedance", "joint"):
 #   -> "assembly.pc_ram.{jaco2_n7, cobotta_pro_1300}.{osc, impedance, joint}"
 _PC_RAM_PCGPU_ARMS = (
     ("jaco2_n7", Jaco2N7RobotCfg, dict(
-        base_pos=(0.60, -0.30, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0),
+        base_pos=(0.60, -0.30, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0),
         arm_effort_limit=120.0,
         gravity_compensation=True,  # see Jaco2N7RobotCfg.gravity_compensation
         default_dof_pos=(0.1629, 2.2989, -0.2511, 0.7993, -2.3822, -0.9424, -0.0279),
     )),
     ("cobotta_pro_1300", CobottaPro1300RobotCfg, dict(
-        base_pos=(0.72, -0.34, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0),
+        base_pos=(0.72, -0.34, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0),
         arm_effort_limit=150.0,  # the vendored asset authors 60 N*m per joint
         default_dof_pos=(-0.2256, -0.1725, 2.3889, 0.0003, 0.9203, 1.3454),
     )),
@@ -510,7 +510,7 @@ for _name, _cfg_cls, _kw in _PC_RAM_PCGPU_ARMS:
                 scene_cfg=PcRamAssemblySceneCfg(
                     ram_init_xy=((-0.25, -0.36), (-0.13, -0.36)),  # table-rel -> world (0.30/0.42, -0.36)
                     ram_init_z=0.030,  # blade-bottom plane = the holders' floor top
-                    ram_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                    ram_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                     reset_pos_jitter=0.0,
                     ram_stand=True,
                 ),
@@ -827,13 +827,13 @@ for _mode in ("osc", "impedance", "diff_ik", "pink_ik", "joint"):
             scene_cfg=PcGpuAssemblySceneCfg(
                 card_init_xy=(-0.22, -0.36),  # table-relative -> world (0.28, -0.36): the pick band
                 card_init_z=0.030,  # tab-bottom plane = the holder's floor top
-                card_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                card_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                 reset_pos_jitter=0.0,
                 card_stand=True,
             ),
             robot="franka",
             robot_cfg=FrankaRobotCfg(
-                base_pos=(0.64, -0.34, 0.0), base_rot=(0.0, 0.0, 0.0, 1.0)  # yaw 180: faces -x,
+                base_pos=(0.64, -0.34, 0.0), base_rot=(0.0, 0.0, 1.0, 0.0)  # yaw 180: faces -x,
                 # the 154 mm rear foot points +x along the strip (the only fit inside it)
             ),
             control_mode=mode,
@@ -864,7 +864,7 @@ _PC_GPU_ROBOT_KW: dict[str, dict] = {
         # strip between the card holder and the case (the north-strip spot lies outside its
         # comfortable envelope), yaw +90 so the arm faces the work to the north.
         base_pos=(0.42, -0.50, 0.0),
-        base_rot=(0.70710678, 0.0, 0.0, 0.70710678),
+        base_rot=(0.0, 0.0, 0.70710678, 0.70710678),
         default_dof_pos=(-1.9644, 1.8449, 0.0412, 0.8507, -0.7280, 2.8869, 2.8141),
         arm_effort_limit=120.0,
         gravity_compensation=True,  # the real device's controller actively gravity-compensates
@@ -889,14 +889,14 @@ for _robot, _cfg_cls in (
                 scene_cfg=PcGpuAssemblySceneCfg(
                     card_init_xy=(-0.22, -0.36),  # table-relative -> world (0.28, -0.36)
                     card_init_z=0.030,  # tab-bottom plane = the holder's floor top
-                    card_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                    card_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                     reset_pos_jitter=0.0,
                     card_stand=True,
                 ),
                 robot=robot,
                 robot_cfg=cfg_cls(
                     # per-robot base placement: kwargs override the franka's north-strip default
-                    **{"base_pos": (0.64, -0.34, 0.0), "base_rot": (0.0, 0.0, 0.0, 1.0),
+                    **{"base_pos": (0.64, -0.34, 0.0), "base_rot": (0.0, 0.0, 1.0, 0.0),
                        **_PC_GPU_ROBOT_KW[robot]},
                 ),
                 control_mode=mode,
@@ -929,13 +929,13 @@ for _robot in ("rizon4_panda", "gen3n7_panda", "festo_panda"):
                 scene_cfg=PcGpuAssemblySceneCfg(
                     card_init_xy=(-0.22, -0.36),  # table-relative -> world (0.28, -0.36)
                     card_init_z=0.030,  # tab-bottom plane = the holder's floor top
-                    card_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                    card_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                     reset_pos_jitter=0.0,
                     card_stand=True,
                 ),
                 robot=robot,
                 robot_cfg=AttachedArmRobotCfg(
-                    **{"base_pos": (0.64, -0.34, 0.0), "base_rot": (0.0, 0.0, 0.0, 1.0),
+                    **{"base_pos": (0.64, -0.34, 0.0), "base_rot": (0.0, 0.0, 1.0, 0.0),
                        **_PC_GPU_COMPOSITE_KW[robot]},
                 ),
                 control_mode=mode,
@@ -964,10 +964,10 @@ for _mode in ("osc", "impedance", "joint"):
                 control_mode=mode,
                 robot_cfg=BimanualFrankaCfg(robots={
                     "left": ("franka", FrankaRobotCfg(  # yaw 0, faces the work zone from the origin
-                        base_pos=(0.0, 0.0, 0.994), base_rot=(1.0, 0.0, 0.0, 0.0),
+                        base_pos=(0.0, 0.0, 0.994), base_rot=(0.0, 0.0, 0.0, 1.0),
                         nullspace_dof_pos=())),  # nullspace pulls toward the home pose
                     "right": ("franka", FrankaRobotCfg(  # yaw +135 deg, faces the drag/fixture zone
-                        base_pos=(0.75, -0.28, 0.994), base_rot=(0.38268, 0.0, 0.0, 0.92388),
+                        base_pos=(0.75, -0.28, 0.994), base_rot=(0.0, 0.0, 0.92388, 0.38268),
                         # home = the stock pose with q1 swung -1.0 rad: the hand spawns parked
                         # south of the bench center instead of looming over the shared work zone
                         default_dof_pos=(-1.0, -0.197, -0.0014, -1.976, -0.00028, 1.78, 0.786),
@@ -1001,8 +1001,8 @@ for _mode in ("joint", "osc", "impedance"):
                 robot="aloha",
                 control_mode=mode,
                 robot_cfg=AlohaCfg(robots={
-                    "left": ("wxai", WxaiRobotCfg(base_pos=(0.0, 0.30, 0.994), base_rot=(0.7071, 0.0, 0.0, -0.7071))),
-                    "right": ("wxai", WxaiRobotCfg(base_pos=(0.0, -0.30, 0.994), base_rot=(0.7071, 0.0, 0.0, 0.7071))),
+                    "left": ("wxai", WxaiRobotCfg(base_pos=(0.0, 0.30, 0.994), base_rot=(0.0, 0.0, -0.7071, 0.7071))),
+                    "right": ("wxai", WxaiRobotCfg(base_pos=(0.0, -0.30, 0.994), base_rot=(0.0, 0.0, 0.7071, 0.7071))),
                 }),
                 env_spacing=3,
             )
@@ -1017,8 +1017,8 @@ for _mode in ("joint", "osc", "impedance"):
                 robot="bimanual_piper",
                 control_mode=mode,
                 robot_cfg=BimanualPiperCfg(robots={
-                    "left": ("piper", PiperRobotCfg(base_pos=(0.0, 0.35, 0.994), base_rot=(0.7071, 0.0, 0.0, -0.7071))),
-                    "right": ("piper", PiperRobotCfg(base_pos=(0.0, -0.35, 0.994), base_rot=(0.7071, 0.0, 0.0, 0.7071))),
+                    "left": ("piper", PiperRobotCfg(base_pos=(0.0, 0.35, 0.994), base_rot=(0.0, 0.0, -0.7071, 0.7071))),
+                    "right": ("piper", PiperRobotCfg(base_pos=(0.0, -0.35, 0.994), base_rot=(0.0, 0.0, 0.7071, 0.7071))),
                 }),
                 env_spacing=3,
             )
@@ -1041,7 +1041,7 @@ for _mode in ("joint", "osc", "impedance"):
                 robot_cfg=BimanualFrankaCfg(robots={
                     "left": ("franka", FrankaRobotCfg(base_pos=(-0.95, 0.0, 0.994))),  # slab side, faces +x
                     "right": ("franka", FrankaRobotCfg(  # leg-row/threading corner, yaw 180 deg (faces -x)
-                        base_pos=(0.25, -0.25, 0.994), base_rot=(0.0, 0.0, 0.0, 1.0))),
+                        base_pos=(0.25, -0.25, 0.994), base_rot=(0.0, 0.0, 1.0, 0.0))),
                 }),
                 env_spacing=3,
             )
@@ -1086,7 +1086,7 @@ for _mode in ("joint", "pink_ik"):
                 scene_cfg=IkeaTableAssemblySceneCfg(surface_z=0.7),
                 robot="gr1t2",
                 control_mode=mode,
-                robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.55, 0.95), base_rot=(0.7071, 0.0, 0.0, 0.7071)),
+                robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.55, 0.95), base_rot=(0.0, 0.0, 0.7071, 0.7071)),
                 env_spacing=3,
             )
         ),
@@ -1122,15 +1122,15 @@ for _mode in ("osc", "impedance", "joint"):
                 case_xy=(0.54, 0.0),  # case at the table anchor — the motherboard cell layout
                 key_init_xy=(-0.18, -0.30),  # table-rel -> world (0.36, -0.30)
                 key_init_z=0.007,  # tip 1 mm above the stand's 6 mm floor pad
-                key_init_quat=(1.0, 0.0, 0.0, 0.0),  # standing tip-down in the stand
+                key_init_quat=(0.0, 0.0, 0.0, 1.0),  # standing tip-down in the stand
                 key_stand=True,
                 card_init_xy=(-0.54, -0.44),  # table-rel -> world (0.00, -0.44): a second row
                 # south-west of the stick holders
                 card_init_z=0.030,  # tab-bottom plane = the holder's floor top
-                card_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated heading (length along x)
+                card_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated heading (length along x)
                 ram_init_xy=((-0.41, -0.335), (-0.325, -0.335)),  # table-rel -> world
                 # (0.13/0.215, -0.335): the south-west staging strip, west of the key stand
-                ram_init_quat=(1.0, 0.0, 0.0, 0.0),  # upright, the seated orientation
+                ram_init_quat=(0.0, 0.0, 0.0, 1.0),  # upright, the seated orientation
                 ram_init_z=0.030,  # blade-bottom plane = the holders' floor top
                 reset_pos_jitter=0.0,
                 card_stand=True,

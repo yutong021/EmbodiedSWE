@@ -68,7 +68,7 @@ def main() -> None:
                 st = torch.zeros(n, 13, device=device)
                 st[:, 0:3] = bolt_pos
                 st[:, 2] += STAGE_GAP  # bolt origin is at its base, so this lands just above the threads
-                st[:, 3] = 1.0  # identity quat -> screw axis up, aligned with the bolt
+                st[:, 6] = 1.0  # identity quat -> screw axis up, aligned with the bolt
                 nut.write_root_state_to_sim(st, all_ids)
         elif SHOW_END < i < ASSEMBLE_END:  # press + twist (capped spin) to screw each nut down its bolt
             f = torch.zeros(n, 3, device=device)
