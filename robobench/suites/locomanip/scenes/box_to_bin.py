@@ -33,6 +33,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -70,7 +71,7 @@ class BoxToBinSceneCfg(BaseCfg):
     box_init: tuple[float, float] = (0.0, 0.5785)
     box_drop: float = 0.003  # spawn drop height above the resting pose (m)
     #: Arena spawns the box rolled/yawed pi (a cosmetic flip of a textured cube); identity here.
-    box_init_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz
+    box_init_quat: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw
 
     #: Table footprint center and the z scale that makes the raw 0.758 m table the galileo room's
     #: low 0.531 m one. Spawned at yaw +90 deg: its 1.80 m length runs along y.
@@ -323,9 +324,9 @@ class BoxToBinScene(BaseScene):
         if unknown:
             raise ValueError(f"{type(self).__name__} cannot apply per-env: {sorted(unknown)}")
         if "box_friction" in values:
-            mats = self.box.root_physx_view.get_material_properties()  # (n, n_shapes, 3)
+            mats = physx_view(self.box).get_material_properties()  # (n, n_shapes, 3)
             mats[..., 0:2] = torch.tensor(values["box_friction"], dtype=torch.float32).view(-1, 1, 1)
-            self.box.root_physx_view.set_material_properties(mats, torch.arange(env.num_envs, device="cpu"))
+            physx_view(self.box).set_material_properties(mats, torch.arange(env.num_envs, device="cpu"))
 
     def bind(self, env: BaseEnv) -> None:
         """Grab the box handle, cache env origins, allocate the journey latches, and set friction.

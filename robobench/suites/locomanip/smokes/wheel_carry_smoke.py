@@ -81,7 +81,7 @@ def main() -> None:
     def teleport(xy: tuple[float, float], z: float) -> None:
         st = torch.zeros(n, 13, device=device)
         st[:, 0:3] = scene.env_origins + torch.tensor((xy[0], xy[1], z), device=device)
-        st[:, 3] = 1.0  # identity quat -> flat, as it started
+        st[:, 6] = 1.0  # identity quat -> flat, as it started
         scene.wheel.write_root_state_to_sim(st, all_ids)
 
     fails = []

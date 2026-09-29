@@ -129,7 +129,7 @@ class FruitDeliverySceneCfg(FruitsOnPlateSceneCfg):
                      / "kitchen_table" / "main.usda")
         self.TABLES = dict(self.TABLES)
         self.TABLES["kitchen"] = {
-            "usd": None, "scale": 1.0, "orient": (1.0, 0.0, 0.0, 0.0),
+            "usd": None, "scale": 1.0, "orient": (0.0, 0.0, 0.0, 1.0),
             "surface_z": 0.70, "pos": (0.0, 0.0),
             # top_offset == height == the authored surface height: the ground-standing
             # branch in the parent's assets() then spawns the table at z=0 on a ground at

@@ -35,6 +35,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 from dataclasses import dataclass
 from pathlib import Path
 from robobench.core.assets import asset_path
@@ -105,7 +106,7 @@ class WheelCarrySceneCfg(BaseCfg):
     #: `assembly.wheel_pick_place`, so the grasp transfers.
     wheel_init_offset: tuple[float, float] = (-0.35, -0.10)
     wheel_init_z: float = 0.0056  # wheel-origin drop height above the table top (m)
-    wheel_init_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; flat on the table
+    wheel_init_quat: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; flat on the table
     light_intensity: float = 3000.0  # the scene's dome light
     light_color: tuple[float, float, float] = (0.75, 0.75, 0.75)
     # Asset USDs; empty -> the vendored trees under the assembly suite's `assets/` (cross-suite reuse
@@ -238,7 +239,7 @@ class WheelCarryScene(BaseScene):
             # build. Left off deliberately — the collider is what the task needs.
             "pick_table": AssetBaseCfg(
                 prim_path="{ENV_REGEX_NS}/PickTable",
-                init_state=AssetBaseCfg.InitialStateCfg(pos=(px, py, c.bare_table_z), rot=(1.0, 0.0, 0.0, 0.0)),
+                init_state=AssetBaseCfg.InitialStateCfg(pos=(px, py, c.bare_table_z), rot=(0.0, 0.0, 0.0, 1.0)),
                 spawn=sim_utils.UsdFileCfg(
                     usd_path=c.pick_table_usd,
                     scale=(c.bare_scale,) * 3,
@@ -249,7 +250,7 @@ class WheelCarryScene(BaseScene):
             # would shove around the table instead of landing in.
             "place_table": AssetBaseCfg(
                 prim_path="{ENV_REGEX_NS}/PlaceTable",
-                init_state=AssetBaseCfg.InitialStateCfg(pos=(qx, qy, c.table_z), rot=(1.0, 0.0, 0.0, 0.0)),
+                init_state=AssetBaseCfg.InitialStateCfg(pos=(qx, qy, c.table_z), rot=(0.0, 0.0, 0.0, 1.0)),
                 spawn=sim_utils.UsdFileCfg(
                     usd_path=c.place_table_usd,
                     rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
@@ -304,9 +305,9 @@ class WheelCarryScene(BaseScene):
         if unknown:
             raise ValueError(f"{type(self).__name__} cannot apply per-env: {sorted(unknown)}")
         if "wheel_friction" in values:
-            mats = self.wheel.root_physx_view.get_material_properties()  # (n, n_shapes, 3)
+            mats = physx_view(self.wheel).get_material_properties()  # (n, n_shapes, 3)
             mats[..., 0:2] = torch.tensor(values["wheel_friction"], dtype=torch.float32).view(-1, 1, 1)
-            self.wheel.root_physx_view.set_material_properties(mats, torch.arange(env.num_envs, device="cpu"))
+            physx_view(self.wheel).set_material_properties(mats, torch.arange(env.num_envs, device="cpu"))
 
     def bind(self, env: BaseEnv) -> None:
         """Grab the wheel handle, cache env origins, allocate the journey latches, and set friction.
