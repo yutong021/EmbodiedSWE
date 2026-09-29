@@ -73,7 +73,7 @@ SLICE_FOODS = (
 # The scene's FOOD_PRESETS are keyed by the exact food name, so the indexed scans carry their
 # species' conditions here (cfg-only): bananas lie arch-horizontal, firm straight foods release
 # at the flesh centre.
-_BANANA = dict(depth_past_center=0.0, food_rot=(math.sqrt(0.5), math.sqrt(0.5), 0.0, 0.0))
+_BANANA = dict(depth_past_center=0.0, food_rot=(math.sqrt(0.5), 0.0, 0.0, math.sqrt(0.5)))
 _FIRM = dict(depth_past_center=0.0)
 FOOD_KW = {
     **{f"banana_{i}": _BANANA for i in range(1, 6)},
@@ -97,7 +97,7 @@ def _franka() -> FrankaRobotCfg:
     # patch.
     return FrankaRobotCfg(
         base_pos=(0.0, -0.58, 0.858),
-        base_rot=(math.sqrt(0.5), 0.0, 0.0, math.sqrt(0.5)),
+        base_rot=(0.0, 0.0, math.sqrt(0.5), math.sqrt(0.5)),
         gripper_stiffness=10000.0, gripper_damping=200.0, gripper_effort_limit=160.0,
     )
 

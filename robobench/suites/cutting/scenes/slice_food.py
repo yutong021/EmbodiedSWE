@@ -23,6 +23,7 @@ Heavy imports (isaaclab, pxr) are deferred so importing this module stays app-fr
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import json
 import math
 from dataclasses import dataclass
@@ -85,7 +86,7 @@ class SliceFoodSceneCfg(BaseCfg):
     arm_stand_size: tuple[float, float] = (0.40, 0.40)  # footprint (m)
     reset_pos_jitter: float = 0.0  # uniform +/- xy jitter of the food at reset
     # food rest orientation (w,x,y,z), applied to the whole welded assembly at reset
-    food_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
+    food_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
     light_intensity: float = 2800.0
 
     # Per-food conditions — each food cuts differently; a preset value applies only where
@@ -101,7 +102,7 @@ class SliceFoodSceneCfg(BaseCfg):
             # an arched fruit must lie on its SIDE (arch horizontal): stood as a bridge,
             # every interior cut frees an unsupported overhang that tips onto the buried
             # blade and clamps it (drawer jam — it rides the knife out of the kerf)
-            "food_rot": (math.sqrt(0.5), math.sqrt(0.5), 0.0, 0.0),  # roll 90 deg about x
+            "food_rot": (math.sqrt(0.5), 0.0, 0.0, math.sqrt(0.5)),  # roll 90 deg about x
         },
     }
 
@@ -112,11 +113,12 @@ class SliceFoodSceneCfg(BaseCfg):
         # chop pose (blade down, length along +y) with the edge levelled: chop x tilt_z
         h = math.radians(self.knife_edge_tilt_deg) / 2
         a, b = (0.5, 0.5, 0.5, 0.5), (math.cos(h), 0.0, 0.0, math.sin(h))
-        self.knife_rot = (
+        w, x, y, z = (  # wxyz product
             a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
             a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
             a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
             a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0])
+        self.knife_rot = (x, y, z, w)  # xyzw (Isaac Lab 3.0)
         self.surface_z = self.island_top + self.board_size[2]  # board top;
         # record_video and external cameras anchor on this
 
@@ -340,7 +342,7 @@ class SliceFoodScene(BaseScene):
 
     @staticmethod
     def _rot3(q):
-        w, x, y, z = q
+        x, y, z, w = q  # xyzw
         return [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
                 [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
                 [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
@@ -425,10 +427,10 @@ class SliceFoodScene(BaseScene):
             raise ValueError(f"unknown physical params: {unknown}")
 
         def _set_friction(asset, vals):
-            mats = asset.root_physx_view.get_material_properties()
+            mats = physx_view(asset).get_material_properties()
             v = torch.as_tensor(vals, dtype=mats.dtype).view(-1, 1, 1)
             mats[:, :, 0:2] = v
-            asset.root_physx_view.set_material_properties(mats, torch.arange(mats.shape[0]))
+            physx_view(asset).set_material_properties(mats, torch.arange(mats.shape[0]))
 
         if "piece_friction" in values:
             for pc in self.pieces:

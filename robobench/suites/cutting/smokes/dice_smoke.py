@@ -74,7 +74,8 @@ def main() -> None:
     board_top = scene._board_top
     park_z = board_top + scene.food_height() + 0.10
     down_z = board_top + 0.001
-    q_chop = tuple(float(v) for v in scene.cfg.knife_rot)  # edge-level chop pose
+    kr = [float(v) for v in scene.cfg.knife_rot]  # xyzw
+    q_chop = (kr[3], kr[0], kr[1], kr[2])  # edge-level chop pose; this smoke's staging math is wxyz
     el = scene._edge_local
     edge_local = el[(el[:, 0] - 0.07).abs().argmin()]  # mid-blade point of the REAL edge
     origin0 = env.iscene.env_origins[0]
@@ -126,7 +127,8 @@ def main() -> None:
         R = _rotmat(cur_q[0])
         root = torch.tensor([x, y, ez], device=device) - R @ edge_local
         st[:, 0:3] = root + env.iscene.env_origins
-        st[:, 3:7] = torch.tensor(cur_q[0], device=device)
+        w, x, y, z = cur_q[0]
+        st[:, 3:7] = torch.tensor((x, y, z, w), device=device)
         st[:, 7:] = 0.0
         scene.knife.write_root_state_to_sim(st)
 

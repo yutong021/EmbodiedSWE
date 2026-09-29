@@ -76,7 +76,8 @@ def main() -> None:
     board_top = scene._board_top
     park_z = board_top + scene.food_height() + 0.10
     down_z = board_top + 0.001
-    q_chop = tuple(float(v) for v in scene.cfg.knife_rot)  # edge-level chop pose
+    kr = [float(v) for v in scene.cfg.knife_rot]  # xyzw
+    q_chop = (kr[3], kr[0], kr[1], kr[2])  # edge-level chop pose; this smoke's staging math is wxyz
     # the mid-blade point of the REAL edge (knife frame) — what we place at the aim
     el = scene._edge_local
     edge_local = el[(el[:, 0] - 0.07).abs().argmin()]
@@ -94,7 +95,7 @@ def main() -> None:
         """Env-0 world xy of the plane's flesh centre + blade yaw, in the LIVE food frame."""
         rq = scene.pieces[ref_i].data.root_quat_w[0]
         rp = scene.pieces[ref_i].data.root_pos_w[0]
-        R = _rotmat(rq)
+        R = _rotmat((rq[3], rq[0], rq[1], rq[2]))  # sim quats are xyzw
         world = rp + R @ (scene._plane_aims[idx] - ref_cent)
         nx = R @ torch.tensor([1.0, 0.0, 0.0], device=device)
         return float(world[0]), float(world[1]), math.atan2(float(nx[1]), float(nx[0]))
@@ -108,7 +109,8 @@ def main() -> None:
         R = _rotmat(cur_q[0])
         root = torch.tensor([x, y, ez], device=device) - R @ edge_local
         st[:, 0:3] = root + env.iscene.env_origins
-        st[:, 3:7] = torch.tensor(cur_q[0], device=device)
+        w, x, y, z = cur_q[0]
+        st[:, 3:7] = torch.tensor((x, y, z, w), device=device)
         st[:, 7:] = 0.0
         scene.knife.write_root_state_to_sim(st)
 
