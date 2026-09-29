@@ -189,7 +189,7 @@ class GraspWeldContract:
         from pxr import Usd, UsdPhysics
 
         p = obj.cfg.prim_path.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
-        root = p.replace("env_.*", f"env_{env_i}")
+        root = p.replace("env_[^/]+", f"env_{env_i}").replace("env_.*", f"env_{env_i}")  # 3.0 resolves the ns to env_[^/]+
         prim = self.scene.env.stage.GetPrimAtPath(root)
         if not prim.IsValid():
             raise RuntimeError(f"[grasp-weld] part prim missing: {root}")
@@ -401,7 +401,7 @@ class GraspWeldContract:
         axis_w = quat_apply(hq, axis.expand(fp.shape[0], 3))
         out = []
         for _name, obj, p0, p1, _win in self._gw_sites:
-            pp, pq = obj.data.root_pos_w, obj.data.root_quat_w
+            pp, pq = obj.data.root_pos_w.torch, obj.data.root_quat_w.torch
             n = pp.shape[0]
             a = pp + quat_apply(pq, torch.tensor(p0, device=pp.device).expand(n, 3))
             b = pp + quat_apply(pq, torch.tensor(p1, device=pp.device).expand(n, 3))
@@ -420,7 +420,7 @@ class GraspWeldContract:
         n = pinch.shape[0]
         out = []
         for _name, obj, p0, p1, _win in self._gw_sites:
-            pp, pq = obj.data.root_pos_w, obj.data.root_quat_w
+            pp, pq = obj.data.root_pos_w.torch, obj.data.root_quat_w.torch
             a = pp + quat_apply(pq, torch.tensor(p0, device=pinch.device).expand(n, 3))
             b = pp + quat_apply(pq, torch.tensor(p1, device=pinch.device).expand(n, 3))
             ab = b - a
@@ -457,7 +457,7 @@ class GraspWeldContract:
         j = UsdPhysics.FixedJoint.Get(self.scene.env.stage, self._gw_paths[env_i][s][k])
         p, q = rel_p.tolist(), rel_q.tolist()
         j.GetLocalPos0Attr().Set(Gf.Vec3f(p[0], p[1], p[2]))
-        j.GetLocalRot0Attr().Set(Gf.Quatf(q[0], Gf.Vec3f(q[1], q[2], q[3])))
+        j.GetLocalRot0Attr().Set(Gf.Quatf(q[3], Gf.Vec3f(q[0], q[1], q[2])))
         j.GetJointEnabledAttr().Set(True)
         return True
 

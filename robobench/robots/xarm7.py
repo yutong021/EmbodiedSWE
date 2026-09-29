@@ -33,6 +33,7 @@ Heavy imports are deferred so registration stays app-free.
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 from dataclasses import dataclass
 from pathlib import Path
 from robobench.core.assets import asset_path
@@ -64,7 +65,7 @@ class XArm7RobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; faces +x
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; faces +x
     # Arm position-PD gains — used in "joint" mode only (the torque modes zero them).
     arm_stiffness: float = 400.0
     arm_damping: float = 80.0
@@ -203,7 +204,7 @@ class XArm7Robot(BaseRobot):
                 joint_names_expr=list(self.ARM_JOINTS),
                 stiffness=0.0 if torque_mode else c.arm_stiffness,
                 damping=0.0 if torque_mode else c.arm_damping,
-                effort_limit_sim=c.arm_effort_limit,  # None -> the authored per-joint ratings
+                joint_effort_limit=c.arm_effort_limit,  # None -> the authored per-joint ratings
                 friction=0.0,  # the asset authors physxJoint:jointFriction=1.0 on every arm
                 # joint — PhysX scales it by the transmitted constraint force, a large
                 # Coulomb brake under gravity load. The benchmark's other arms author no
@@ -213,7 +214,7 @@ class XArm7Robot(BaseRobot):
                 joint_names_expr=list(self.GRIPPER_JOINTS),
                 stiffness=c.gripper_stiffness if c.gripper_stiffness is not None else gs["stiffness"],
                 damping=c.gripper_damping if c.gripper_damping is not None else gs["damping"],
-                effort_limit_sim=c.gripper_effort_limit if c.gripper_effort_limit is not None else gs["effort"],
+                joint_effort_limit=c.gripper_effort_limit if c.gripper_effort_limit is not None else gs["effort"],
             ),
         }
         if self.PASSIVE_JOINTS:
@@ -263,9 +264,9 @@ class XArm7Robot(BaseRobot):
         # coefficients at the authored 1.0 (`art.data.joint_friction_coeff` then reads 0.0 while
         # the brake is still live). Same escape hatch `AttachedArmRobot.on_bind` uses.
         art = self.articulation
-        fr = art.root_physx_view.get_dof_friction_coefficients()
+        fr = physx_view(art).get_dof_friction_coefficients()
         fr[:] = 0.0
-        art.root_physx_view.set_dof_friction_coefficients(fr, torch.arange(env.num_envs, device="cpu"))
+        physx_view(art).set_dof_friction_coefficients(fr, torch.arange(env.num_envs, device="cpu"))
 
     def build_controller(self) -> CompositeController:
         """`composite([<arm controller>, joint(gripper)])` for the active mode — same shape as

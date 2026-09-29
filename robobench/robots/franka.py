@@ -15,7 +15,7 @@ position targets; switching the mode swaps only the arm controller):
                    PD 400/80 — the cfg defaults here).
   - "pink_ik"   -> arm by Pink multi-task QP IK (`PinkIKController`, per-env CPU solve over the
                    vendored kinematics URDF) -> joint position targets tracked by the same arm PD;
-                   action = ABSOLUTE hand pose `[pos3, quat4 wxyz]` (env frame) + 2 gripper = 9.
+                   action = ABSOLUTE hand pose `[pos3, quat4 xyzw]` (env frame) + 2 gripper = 9.
                    The GR00T-school teleop/retarget solver. NOTE: any script building a pink env
                    must `import pinocchio` BEFORE AppLauncher (see `controllers/pink_ik.py`).
   - "joint"     -> arm by direct joint position targets (`JointController`); action = 7 arm + 2 gripper.
@@ -65,7 +65,7 @@ class FrankaRobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; faces +x
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; faces +x
     # Arm position-PD gains — used in the position modes ("joint" / "diff_ik"; the torque modes zero
     # them). 400/80 = Isaac's FRANKA_PANDA_HIGH_PD_CFG, "specifically used for IK tracking" — the
     # stock 80/4 preset lags task-space targets badly.
@@ -172,11 +172,11 @@ class FrankaRobot(BaseRobot):
             robot.actuators[arm_act].stiffness = 0.0 if torque_mode else c.arm_stiffness
             robot.actuators[arm_act].damping = 0.0 if torque_mode else c.arm_damping
             if c.arm_effort_limit is not None:
-                robot.actuators[arm_act].effort_limit_sim = c.arm_effort_limit
+                robot.actuators[arm_act].joint_effort_limit = c.arm_effort_limit
         robot.actuators["panda_hand"].stiffness = c.gripper_stiffness
         robot.actuators["panda_hand"].damping = c.gripper_damping
         if c.gripper_effort_limit is not None:
-            robot.actuators["panda_hand"].effort_limit_sim = c.gripper_effort_limit
+            robot.actuators["panda_hand"].joint_effort_limit = c.gripper_effort_limit
         if c.gravity_compensation is not None:
             # Newton-backend gravity compensation: swap in the MuJoCo rigid-body schema carrying
             # `gravcomp` (imported lazily so the PhysX/2.x venv never touches isaaclab_newton).
@@ -273,7 +273,7 @@ class FrankaRobot(BaseRobot):
             arm = "7 arm joints by differential IK (joint position targets); the action is 6 end-effector pose deltas"
         elif mode == "pink_ik":
             arm = ("7 arm joints by Pink QP IK (joint position targets); the action is the absolute hand pose "
-                   "[pos, quat wxyz] in the env frame")
+                   "[pos, quat xyzw] in the env frame")
         else:
             arm = "7 arm joints by direct position targets"
         return (

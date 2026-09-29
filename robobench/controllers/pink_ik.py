@@ -5,7 +5,7 @@ Embodiment-agnostic: a per-step **QP** over a Pinocchio model driving any number
 home), with hard joint limits — over whatever `frames` / `joint_names` the cfg names (a humanoid's two
 wrists, a single arm, a mobile manipulator, ...).
 
-Action = the target pose of each frame, `[pos(3), quat(4, wxyz)]`, in the *env* frame. `compute`
+Action = the target pose of each frame, `[pos(3), quat(4, xyzw)]`, in the *env* frame. `compute`
 transforms them into the base-link frame, solves one QP per env, and returns joint **position**
 targets for the controlled chain (joints outside it, e.g. hands, are a separate controller).
 
@@ -89,19 +89,18 @@ class PinkIKController(BaseController):
         super().bind(robot)  # -> self.joint_ids (the chain), self._sink (position), self.limits
 
         from isaaclab.controllers.pink_ik import PinkIKController as _IsaacPinkIK
-        from isaaclab.controllers.pink_ik.local_frame_task import LocalFrameTask
-        from isaaclab.controllers.pink_ik.null_space_posture_task import NullSpacePostureTask
         from isaaclab.controllers.pink_ik.pink_ik_cfg import PinkIKControllerCfg as _IsaacCfg
+        from isaaclab.controllers.pink_ik.pink_task_cfg import LocalFrameTaskCfg, NullSpacePostureTaskCfg
 
         c = self.cfg
         art = robot.articulation
         all_names = list(art.data.joint_names)  # USD joint order
         controlled_names = [all_names[i] for i in self.joint_ids]  # same order as joint_ids
 
-        def make_cfg():  # fresh task objects per env (targets are set per-env on these)
+        def make_cfg():  # Isaac Lab 3.0 instantiates the tasks from these cfgs, one set per controller
             tasks: list[Any] = [
-                LocalFrameTask(
-                    f.link,
+                LocalFrameTaskCfg(
+                    frame=f.link,
                     base_link_frame_name=c.base_link_frame,
                     position_cost=f.position_cost,
                     orientation_cost=f.orientation_cost,
@@ -112,7 +111,7 @@ class PinkIKController(BaseController):
             ]
             if c.nullspace_joints:
                 tasks.append(
-                    NullSpacePostureTask(
+                    NullSpacePostureTaskCfg(
                         cost=c.nullspace_cost,
                         lm_damping=c.nullspace_lm_damping,
                         controlled_frames=[f.link for f in c.frames],
@@ -147,7 +146,7 @@ class PinkIKController(BaseController):
         base-link frame, set the per-env frame-task targets, solve one QP per env, return (n, |chain|)
         joint position targets."""
         import torch
-        from isaaclab.controllers.pink_ik.local_frame_task import LocalFrameTask
+        from isaaclab.controllers.pink_ik.pink_tasks import LocalFrameTask
         from isaaclab.utils import math as mu
 
         if self._joint_position_override is not None:

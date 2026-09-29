@@ -89,7 +89,7 @@ class G1RobotCfg(BaseRobotCfg):
     # Spawn pose of the pelvis — the G1's natural standing pose, but a placement/reachability dial an
     # agent may adjust (move closer to the table, rotate to face it).
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.75)
-    base_rot: tuple[float, float, float, float] = (0.7071, 0.0, 0.0, 0.7071)  # wxyz; faces +y
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.7071, 0.7071)  # xyzw; faces +y
 
     # Upper-body actuator PD gains (stiffness Kp / damping Kd) — THE "articulation PD" that tracks the
     # position targets a `JointController`/IK writes. Defaults are Isaac's `G1_29DOF_CFG` values;

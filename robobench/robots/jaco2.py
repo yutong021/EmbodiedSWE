@@ -52,7 +52,7 @@ class Jaco2N7RobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; faces +x
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; faces +x
     # Arm position-PD gains — used in "joint" mode only. The preset's 40/15 stiffness is too soft
     # for tracking against gravity; these mirror the sibling arms' joint-mode gains.
     arm_stiffness: float = 400.0
@@ -167,11 +167,11 @@ class Jaco2N7Robot(BaseRobot):
         robot.actuators["arm"].stiffness = 0.0 if torque_mode else c.arm_stiffness
         robot.actuators["arm"].damping = 0.0 if torque_mode else c.arm_damping
         if c.arm_effort_limit is not None:
-            robot.actuators["arm"].effort_limit_sim = c.arm_effort_limit
+            robot.actuators["arm"].joint_effort_limit = c.arm_effort_limit
         robot.actuators["gripper"].stiffness = c.gripper_stiffness
         robot.actuators["gripper"].damping = c.gripper_damping
         if c.gripper_effort_limit is not None:
-            robot.actuators["gripper"].effort_limit_sim = c.gripper_effort_limit
+            robot.actuators["gripper"].joint_effort_limit = c.gripper_effort_limit
         if c.gravity_compensation:
             import isaaclab.sim as sim_utils
 

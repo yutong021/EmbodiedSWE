@@ -41,18 +41,30 @@ class SimCfg:
     dt: float = 0.01
     physx: dict[str, Any] = field(default_factory=lambda: {"solver_type": 1})
     gravity: tuple[float, float, float] = (0.0, 0.0, -9.81)
-    # kwargs splatted into isaaclab's `RenderCfg` (like `physx` -> `PhysxCfg`). Empty -> RTX defaults.
-    # A scene with glass/translucent parts sets `{"enable_translucency": True}` or it renders invisible.
+    # kwargs of isaaclab_physx's `IsaacRtxRendererGlobalSettingsCfg` (the old `RenderCfg` fields),
+    # applied as global RTX settings. Empty -> RTX defaults. A scene with glass/translucent parts
+    # sets `{"enable_translucency": True}` or it renders invisible.
     render: dict[str, Any] = field(default_factory=dict)
 
     def to_isaaclab(self, device: str) -> Any:
         """Build the isaaclab `SimulationCfg` (needs AppLauncher running)."""
         import isaaclab.sim as sim_utils
+        from isaaclab_physx.physics import PhysxCfg
 
+        apply_render_settings(self.render)
         return sim_utils.SimulationCfg(
-            device=device, dt=self.dt, gravity=self.gravity, physx=sim_utils.PhysxCfg(**self.physx),
-            render=sim_utils.RenderCfg(**self.render),
+            device=device, dt=self.dt, gravity=self.gravity, physics=PhysxCfg(**self.physx),
         )
+
+
+def apply_render_settings(render: dict[str, Any]) -> None:
+    """Isaac Lab 3.0 dropped `SimulationCfg.render`; the same fields are global RTX settings now."""
+    if not render:
+        return
+    from isaaclab_physx.renderers.isaac_rtx_renderer_cfg import IsaacRtxRendererGlobalSettingsCfg
+    from isaaclab_physx.renderers.isaac_rtx_renderer_utils import apply_isaac_rtx_global_settings
+
+    apply_isaac_rtx_global_settings(IsaacRtxRendererGlobalSettingsCfg(**render))
 
 
 # ----- EnvCfg: the runnable-env binding ---------------------------------------------------------

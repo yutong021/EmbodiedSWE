@@ -74,7 +74,8 @@ def spawn_room(env, spec):
     room = spec["room"]
     pos = room_pose(room)
     half_yaw = math.radians(room.get("yaw", 0.0))/2
-    quat = (0., 0., math.sin(half_yaw), math.cos(half_yaw)) if spec["backend"] == "newton" else (math.cos(half_yaw), 0., 0., math.sin(half_yaw))
+    # Isaac Lab 3.0 spawners take xyzw for every backend
+    quat = (0., 0., math.sin(half_yaw), math.cos(half_yaw))
     origins = env.iscene.env_origins.detach().cpu().tolist()
     for index, origin in enumerate(origins):
         path = f"/World/Rooms/env_{index}"

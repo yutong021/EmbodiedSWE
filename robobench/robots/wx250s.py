@@ -52,7 +52,7 @@ class Wx250sRobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz on 2.x; xyzw on develop
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw (Isaac Lab 3.0)
     # Arm position-PD gains [per rad]. Explicit floats required — the converted USD has no
     # usable drive gains (see the module docstring).
     arm_stiffness: float = 600.0

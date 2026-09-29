@@ -48,7 +48,7 @@ class GR1T2RobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the pelvis to the world (build-time variant; see G1Robot)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.95)  # GR1T2's natural standing height
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; identity (faces +x)
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; identity (faces +x)
     # Arm + waist (trunk) PD gains — the articulation PD that tracks position targets. Defaults are
     # Isaac's `GR1T2_HIGH_PD_CFG` manipulation values; adjust for compliance studies. Hands keep the
     # USD/cfg defaults.
@@ -123,7 +123,7 @@ class GR1T2Robot(BaseRobot):
                 joint_names_expr=[f"{pfx}_.*"],
                 stiffness=c.hand_stiffness,
                 damping=c.hand_damping,
-                effort_limit_sim=10.0,
+                joint_effort_limit=10.0,
             )
         return {self.name: robot}
 

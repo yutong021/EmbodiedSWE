@@ -55,7 +55,7 @@ class PiperRobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; faces +x
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; faces +x
     # Arm position-PD gains — AgileX's Isaac tutorial values. Used in "joint" mode only.
     arm_stiffness: float = 400.0
     arm_damping: float = 80.0

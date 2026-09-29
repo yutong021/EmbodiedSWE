@@ -56,7 +56,7 @@ class WxaiRobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; faces +x
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; faces +x
     # Arm position-PD gains — None -> the USD's Trossen-tuned values (664/735/738 shoulder,
     # 34-62 wrist; damping ~1%). Used in "joint" mode only (torque modes zero them).
     arm_stiffness: float | None = None

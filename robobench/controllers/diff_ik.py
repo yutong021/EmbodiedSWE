@@ -163,7 +163,7 @@ class DiffIKController(BaseController):
         dpose = torch.cat((action[:, 0:3] * c.pos_scale, action[:, 3:6] * c.rot_scale), dim=-1)
         self._ik.set_command(dpose, ee_pos=ee_pos, ee_quat=ee_quat)  # latch target = live pose + delta
 
-        jac = art.root_physx_view.get_jacobians()[:, self._jac_ee_idx, 0:6, :][:, :, jids]  # (n, 6, n_arm)
+        jac = art.data.body_link_jacobian_w.torch[:, self._jac_ee_idx, 0:6, :][:, :, jids]  # (n, 6, n_arm)
         q = art.data.joint_pos[:, jids]
         q_des = self._ik.compute(ee_pos, ee_quat, jac, q)
 

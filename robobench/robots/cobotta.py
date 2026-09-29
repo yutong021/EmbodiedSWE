@@ -52,7 +52,7 @@ class CobottaPro1300RobotCfg(BaseRobotCfg):
 
     fixed_base: bool = True  # weld the base to the world (a table-mounted arm)
     base_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)  # base at the table level
-    base_rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)  # wxyz; faces +x
+    base_rot: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # xyzw; faces +x
     # Arm position-PD gains — used in "joint" mode only (the asset's authored drives are per-joint
     # servo-stiff; these give the benchmark's uniform behavior instead).
     arm_stiffness: float = 400.0
@@ -176,13 +176,13 @@ class CobottaPro1300Robot(BaseRobot):
                         joint_names_expr=list(self.ARM_JOINTS),
                         stiffness=0.0 if torque_mode else c.arm_stiffness,
                         damping=0.0 if torque_mode else c.arm_damping,
-                        effort_limit_sim=c.arm_effort_limit,  # None -> the authored 60 N*m per joint
+                        joint_effort_limit=c.arm_effort_limit,  # None -> the authored 60 N*m per joint
                     ),
                     "rg6_drive": ImplicitActuatorCfg(
                         joint_names_expr=list(self.GRIPPER_JOINTS),
                         stiffness=c.gripper_stiffness,
                         damping=c.gripper_damping,
-                        effort_limit_sim=c.gripper_effort_limit,
+                        joint_effort_limit=c.gripper_effort_limit,
                     ),
                     "rg6_passive": ImplicitActuatorCfg(
                         joint_names_expr=list(self.PASSIVE_JOINTS),
