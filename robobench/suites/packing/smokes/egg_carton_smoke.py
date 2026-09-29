@@ -244,7 +244,7 @@ def main() -> bool:
         step(60)
         target_pos, upright_quat = cavity_target(0, 0.030)
         half_turn = torch.tensor(
-            [math.sqrt(0.5), 0.0, math.sqrt(0.5), 0.0], device=device
+            [0.0, math.sqrt(0.5), 0.0, math.sqrt(0.5)], device=device
         ).expand(n, 4)
         sideways = torch.zeros(n, 13, device=device)
         sideways[:, 0:3] = target_pos

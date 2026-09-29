@@ -181,13 +181,13 @@ def main() -> None:
                   f"present={bool(scene.present[0, i2])}", flush=True)
 
     # --- staging helpers ------------------------------------------------------------------
-    def make_state(pos, quat=(1.0, 0.0, 0.0, 0.0)) -> torch.Tensor:
+    def make_state(pos, quat=(0.0, 0.0, 0.0, 1.0)) -> torch.Tensor:
         st = torch.zeros(n, 13, device=device)
         st[:, 0:3] = env.iscene.env_origins + torch.tensor(pos, device=device)
         st[:, 3:7] = torch.tensor(quat, device=device)
         return st
 
-    def teleport_pen(name: str, pos, quat=(1.0, 0.0, 0.0, 0.0)) -> None:
+    def teleport_pen(name: str, pos, quat=(0.0, 0.0, 0.0, 1.0)) -> None:
         scene.pens[name].write_root_state_to_sim(make_state(pos, quat), all_ids)
 
     def holder_axis_and_mouth() -> tuple[torch.Tensor, torch.Tensor]:
@@ -319,14 +319,14 @@ def main() -> None:
         if planned and gap_ang is None:
             xy_off = (SLIDE_OFF * math.cos(base_ang), SLIDE_OFF * math.sin(base_ang))
         hq = scene.holder.data.root_quat_w[0].tolist()
-        if tip_down:  # flip 180 deg about the holder-local x: q_h * (0,1,0,0)
-            w, x, y, z = hq
-            hq = [-x, w, z, -y]
+        if tip_down:  # flip 180 deg about the holder-local x: q_h * (1,0,0,0) (xyzw)
+            x, y, z, w = hq
+            hq = [w, z, -y, -x]
         half = math.radians(yaw_deg) / 2
         # yaw error about world z: q_z(yaw) * q_h
         cw, sw = math.cos(half), math.sin(half)
-        w, x, y, z = hq
-        q = (cw * w - sw * z, cw * x - sw * y, cw * y + sw * x, cw * z + sw * w)
+        x, y, z, w = hq
+        q = (cw * x - sw * y, cw * y + sw * x, cw * z + sw * w, cw * w - sw * z)
         for attempt in range(2 if retry else 1):
             if planned and gap_ang is not None:  # crowded cup: zero-energy slide-in
                 pos_i, q_i = slide_in_state(name, gap_ang)
@@ -374,7 +374,7 @@ def main() -> None:
     # on the pile — run 4's one failure).
     hold_z = c.surface_z + c.holder_h / 2 + 0.22
     a = math.radians(3.0)
-    hold_quat = (math.cos(a / 2), math.sin(a / 2), 0.0, 0.0)
+    hold_quat = (math.sin(a / 2), 0.0, 0.0, math.cos(a / 2))
     hold_pos = (c.holder_pos[0], c.holder_pos[1], hold_z)
     hold_state = make_state(hold_pos, hold_quat)
     step(30)
@@ -422,7 +422,7 @@ def main() -> None:
         z = hold_z + (place_z - hold_z) * f
         ang = a * (1 - f)
         hold_state = make_state((hold_pos[0], hold_pos[1], z),
-                                (math.cos(ang / 2), math.sin(ang / 2), 0.0, 0.0))
+                                (math.sin(ang / 2), 0.0, 0.0, math.cos(ang / 2)))
         step(1)
     hold_state = None  # release
     step(40)
@@ -494,9 +494,9 @@ def main() -> None:
     step(40)
     axis, mouth = holder_axis_and_mouth()
     hq = scene.holder.data.root_quat_w[0].tolist()  # pen axis -> holder-local x: q_h * q_y(90)
-    w, x, y, z = hq
+    x, y, z, w = hq
     c45 = math.cos(math.pi / 4)
-    q_across = (c45 * (w - y), c45 * (x - z), c45 * (y + w), c45 * (z + x))
+    q_across = (c45 * (x - z), c45 * (y + w), c45 * (z + x), c45 * (w - y))
     r0 = c.manifest[idx[probe]][2]
     teleport_pen(probe, (float(mouth[0]), float(mouth[1]), float(mouth[2]) + r0), q_across)
     env.iscene.update(0.0)  # refresh data buffers from the written state (no physics step)
@@ -529,9 +529,9 @@ def main() -> None:
     hq = scene.holder.data.root_quat_w.clone()
     side_state = make_state(
         (c.holder_pos[0], c.holder_pos[1], c.surface_z + c.holder_outer_r + 0.006),
-        (math.cos(b / 2), math.sin(b / 2), 0.0, 0.0))
+        (math.sin(b / 2), 0.0, 0.0, math.cos(b / 2)))
     hq_conj = hq.clone()
-    hq_conj[:, 1:] = -hq_conj[:, 1:]
+    hq_conj[:, :3] = -hq_conj[:, :3]
     pen_states = {}
     for name in names:
         p_loc = quat_apply_inverse(hq, scene.pens[name].data.root_pos_w - hp)

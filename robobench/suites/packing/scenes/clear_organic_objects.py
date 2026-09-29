@@ -50,6 +50,7 @@ scene — stays app-free.
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -160,11 +161,11 @@ class ClearOrganicObjectsSceneCfg(BaseCfg):
     surface_light: float = 2500.0
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0,
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0,
                       "pos": (0.40, -0.03), "top_offset": 0.0, "height": 1.05,
                       "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"),
-                    "scale": 0.01, "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994,
+                    "scale": 0.01, "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994,
                     "pos": (0.0, 0.0), "top_offset": 0.994, "height": 0.994,
                     "kinematic": True},
         # The RoboLab clutter scene's own wooden table, extracted from the flattened
@@ -177,7 +178,7 @@ class ClearOrganicObjectsSceneCfg(BaseCfg):
         # lets the G1 stand naturally on the floor beside it, no riser needed.
         "robolab": {"usd": ("clear_organic_objects", "robolab_table/robolab_table.usda"),
                     "local": True, "scale": 1.0, "z_scale": 1.114,
-                    "orient": (0.70711, 0.0, 0.0, -0.70711), "surface_z": 0.78,
+                    "orient": (0.0, 0.0, -0.70711, 0.70711), "surface_z": 0.78,
                     # origin_offset centres the tabletop's GEOMETRY at workbench_pos (the
                     # prim origin sits at the table's corner region, not its centre); with it
                     # the top spans x[-0.5,+0.5] (x depth_scale), y[-0.35,+0.35] around the
@@ -402,7 +403,7 @@ class ClearOrganicObjectsScene(BaseScene):
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=(wx + c.bin_pos[0], wy + c.bin_pos[1], z0),
-                    rot=(math.cos(bin_half), 0.0, 0.0, math.sin(bin_half))),
+                    rot=(0.0, 0.0, math.sin(bin_half), math.cos(bin_half))),
             ),
         }
         if preset.get("collision_slab"):
@@ -584,7 +585,7 @@ class ClearOrganicObjectsScene(BaseScene):
             # stop round produce rolling after landing, and the run measuring it scored worse
             # (45 vs 68). Items only.
             for body in self.items.values():
-                view = body.root_physx_view
+                view = physx_view(body)
                 mp = view.get_material_properties().clone()  # (N, shapes, 3)
                 mp[..., 0] = c.item_static_friction
                 mp[..., 1] = c.item_dynamic_friction
@@ -608,8 +609,8 @@ class ClearOrganicObjectsScene(BaseScene):
         broot[:, 0] = wx + c.bin_pos[0]
         broot[:, 1] = wy + c.bin_pos[1]
         broot[:, 2] = z0
-        broot[:, 3] = math.cos(bin_half)
-        broot[:, 6] = math.sin(bin_half)
+        broot[:, 5] = math.sin(bin_half)
+        broot[:, 6] = math.cos(bin_half)
         broot[:, 0:3] += origin
         self.bin.write_root_state_to_sim(broot, env_ids)
         if self.tray is not None:
@@ -617,7 +618,7 @@ class ClearOrganicObjectsScene(BaseScene):
             troot[:, 0] = wx + c.tray_pos[0] - float(self._tray_center_local[0])
             troot[:, 1] = wy + c.tray_pos[1] - float(self._tray_center_local[1])
             troot[:, 2] = z0
-            troot[:, 3] = 1.0
+            troot[:, 6] = 1.0
             troot[:, 0:3] += origin
             self.tray.write_root_state_to_sim(troot, env_ids)
         self._flags[env_ids] = False
@@ -663,19 +664,19 @@ class ClearOrganicObjectsScene(BaseScene):
             # putting a lemon's 50 mm narrow axis at azimuth 90 rather than the 180 the G1 binding
             # was steering for. Found while porting the same reset into the fruits_on_plate scene,
             # by tabulating the settled OBB spans instead of trusting the commanded pose.
-            st[:, 3] = torch.cos(yaw / 2)
-            st[:, 6] = torch.sin(yaw / 2)
+            st[:, 5] = torch.sin(yaw / 2)
+            st[:, 6] = torch.cos(yaw / 2)
             # Optional 5th field of a fixed_layout entry: ROLL (deg) about the item's own x
             # axis, applied before the yaw, so an item authored upright (avocado, onion) can be
             # laid on its side. q = q_yaw * q_roll.
             if name in fixed and len(fixed[name]) > 4 and fixed[name][4]:
                 r2 = math.radians(fixed[name][4]) / 2
                 cr, sr = math.cos(r2), math.sin(r2)
-                cy, sy = st[:, 3].clone(), st[:, 6].clone()
-                st[:, 3] = cy * cr          # w
-                st[:, 4] = cy * sr          # x
-                st[:, 5] = sy * sr          # y
-                st[:, 6] = sy * cr          # z
+                cy, sy = st[:, 6].clone(), st[:, 5].clone()
+                st[:, 3] = cy * sr          # x
+                st[:, 4] = sy * sr          # y
+                st[:, 5] = sy * cr          # z
+                st[:, 6] = cy * cr          # w
             # absent organics -> off-camera ground depot (below the surface, on the floor)
             absent = ~self.present[env_ids, i]
             if absent.any():

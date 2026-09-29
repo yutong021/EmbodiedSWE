@@ -360,7 +360,7 @@ def main() -> None:
         bq = scene.box.data.body_quat_w[:, b]
         target = torch.tensor((0.0, DROP_Y[name], 0.0), device=device).expand(n, 3)
         half = DROP_YAW[name] / 2
-        qz = torch.tensor((math.cos(half), 0.0, 0.0, math.sin(half)), device=device).expand(n, 4)
+        qz = torch.tensor((0.0, 0.0, math.sin(half), math.cos(half)), device=device).expand(n, 4)
         pose = torch.zeros(n, 7, device=device)
         pose[:, 0:3] = bp + quat_apply(bq, target)
         pose[:, 2] += z_up
@@ -524,7 +524,7 @@ def main() -> None:
         roof[:, 0] = wx + c.box_pos[0]
         roof[:, 1] = wy + c.box_pos[1]
         roof[:, 2] = c.surface_z + (0.40 if CHEST else 0.32)  # just above the cabinet top
-        roof[:, 3] = 1.0
+        roof[:, 6] = 1.0
         roof[:, 0:3] += env.iscene.env_origins
         scene.items["stapler"].write_root_state_to_sim(roof, all_ids)
         step(40)

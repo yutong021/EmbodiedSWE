@@ -162,7 +162,7 @@ def main() -> None:
     def place_on_plate(name: str, slot: tuple[float, float, float]) -> None:
         st = torch.zeros(n, 13, device=device)
         st[:, 0:3] = plate_origin_w() + torch.tensor(slot, device=device)
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         scene.items[name].write_root_state_to_sim(st, all_ids)
 
     def place_on_table(name: str, dx: float, dy: float) -> None:
@@ -173,7 +173,7 @@ def main() -> None:
         st[:, 0] = o[:, 0] + wx + dx
         st[:, 1] = o[:, 1] + wy + dy
         st[:, 2] = o[:, 2] + c.surface_z + 0.08
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         scene.items[name].write_root_state_to_sim(st, all_ids)
 
     def settle(steps: int = 90) -> None:

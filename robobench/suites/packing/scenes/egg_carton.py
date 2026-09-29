@@ -125,7 +125,7 @@ class EggCartonSceneCfg(BaseCfg):
         "lab_table": {
             "usd": ("lab_table", "table_instanceable.usd"),
             "scale": 1.0,
-            "orient": (0.70711, 0.0, 0.0, 0.70711),
+            "orient": (0.0, 0.0, 0.70711, 0.70711),
             "surface_z": 0.0,
             "pos": (0.5, 0.0),
             "top_offset": 0.0,
@@ -135,7 +135,7 @@ class EggCartonSceneCfg(BaseCfg):
         "packing": {
             "usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"),
             "scale": 0.01,
-            "orient": (1.0, 0.0, 0.0, 0.0),
+            "orient": (0.0, 0.0, 0.0, 1.0),
             "surface_z": 0.994,
             "pos": (0.0, 0.0),
             "top_offset": 0.994,
@@ -303,7 +303,7 @@ class EggCartonScene(BaseScene):
                         wy + c.basket_pos[1] + sy,
                         c.surface_z + c.egg_spawn_lift,
                     ),
-                    rot=(math.sqrt(0.5), 0.0, math.sqrt(0.5), 0.0),
+                    rot=(0.0, math.sqrt(0.5), 0.0, math.sqrt(0.5)),
                 ),
             )
         return out
@@ -359,8 +359,8 @@ class EggCartonScene(BaseScene):
         root = torch.zeros(m, 13, device=dev)
         root[:, 0:2] = carton_xy
         root[:, 2] = c.surface_z
-        root[:, 3] = torch.cos(carton_yaw / 2)
-        root[:, 6] = torch.sin(carton_yaw / 2)
+        root[:, 5] = torch.sin(carton_yaw / 2)
+        root[:, 6] = torch.cos(carton_yaw / 2)
         root[:, 0:3] += origin
         self.carton.write_root_pose_to_sim(root[:, 0:7], env_ids)
         self.carton.write_root_velocity_to_sim(torch.zeros(m, 6, device=dev), env_ids)
@@ -401,12 +401,12 @@ class EggCartonScene(BaseScene):
             st[:, 0:2] = pos
             st[:, 2] = c.surface_z + c.egg_spawn_lift
             st[:, 0:3] += origin
-            # q = qz(yaw) * qy(90 deg): egg's long local z-axis lies in the table plane.
+            # q = qz(yaw) * qy(90 deg), xyzw: egg's long local z-axis lies in the table plane.
             half = yaw / 2
-            st[:, 3] = torch.cos(half) * c45
-            st[:, 4] = -torch.sin(half) * c45
-            st[:, 5] = torch.cos(half) * c45
-            st[:, 6] = torch.sin(half) * c45
+            st[:, 3] = -torch.sin(half) * c45
+            st[:, 4] = torch.cos(half) * c45
+            st[:, 5] = torch.sin(half) * c45
+            st[:, 6] = torch.cos(half) * c45
             egg.write_root_state_to_sim(st, env_ids)
 
     # ----- complete state ----------------------------------------------------------------------

@@ -63,6 +63,7 @@ scene — stays app-free.
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -181,11 +182,11 @@ class FruitsOnPlateSceneCfg(BaseCfg):
     surface_light: float = 2500.0
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0,
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0,
                       "pos": (0.40, -0.03), "top_offset": 0.0, "height": 1.05,
                       "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"),
-                    "scale": 0.01, "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994,
+                    "scale": 0.01, "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994,
                     "pos": (0.0, 0.0), "top_offset": 0.994, "height": 0.994,
                     "kinematic": True},
     }
@@ -419,7 +420,7 @@ class FruitsOnPlateScene(BaseScene):
     @staticmethod
     def _yaw_quat(deg: float) -> tuple[float, float, float, float]:
         h = math.radians(deg) / 2
-        return (math.cos(h), 0.0, 0.0, math.sin(h))
+        return (0.0, 0.0, math.sin(h), math.cos(h))
 
     def _plate_origin_xy(self) -> tuple[float, float]:
         """Table-relative xy for the plate's PRIM ORIGIN such that its geometric centre lands on
@@ -533,7 +534,7 @@ class FruitsOnPlateScene(BaseScene):
         # pads is mu ~0.8-1.2.
         if not self._friction_written:
             for body in self.items.values():
-                view = body.root_physx_view
+                view = physx_view(body)
                 mp = view.get_material_properties().clone()  # (N, shapes, 3)
                 mp[..., 0] = c.item_static_friction
                 mp[..., 1] = c.item_dynamic_friction
@@ -558,7 +559,7 @@ class FruitsOnPlateScene(BaseScene):
         proot[:, 0] = wx + pox
         proot[:, 1] = wy + poy
         proot[:, 2] = z0
-        proot[:, 3] = q[0]
+        proot[:, 5] = q[2]
         proot[:, 6] = q[3]
         proot[:, 0:3] += origin
         self.plate.write_root_state_to_sim(proot, env_ids)
@@ -604,8 +605,8 @@ class FruitsOnPlateScene(BaseScene):
             # the axis a solver was told to expect at azimuth 180 actually presents at 90. Caught
             # here by measuring the settled OBB spans — the lemon's 50 mm narrow axis showed up at
             # az 90 with a 76 mm span at az 180, exactly the doubled pose.
-            st[:, 3] = torch.cos(yaw / 2)
-            st[:, 6] = torch.sin(yaw / 2)
+            st[:, 5] = torch.sin(yaw / 2)
+            st[:, 6] = torch.cos(yaw / 2)
             # absent fruits -> off-camera ground depot (below the surface, on the floor)
             absent = ~self.present[env_ids, i]
             if absent.any():

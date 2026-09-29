@@ -183,7 +183,7 @@ for _mode in ("osc", "diff_ik", "pink_ik", "joint"):
                 robot="franka",
                 control_mode=mode,
                 robot_cfg=FrankaRobotCfg(base_pos=(0.0, -0.15, 0.55),
-                                         base_rot=(0.7071068, 0.0, 0.0, 0.7071068),
+                                         base_rot=(0.0, 0.0, 0.7071068, 0.7071068),
                                          # the known-good single-arm pick-place config
                                          # (pen_holder lesson: the default nullspace posture
                                          # winds the arm on long lateral servos)
@@ -756,7 +756,7 @@ for _mode in ("joint", "pink_ik"):
                 robot="gr1t2",
                 control_mode=mode,
                 robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.48, 0.95),
-                                        base_rot=(0.7071, 0.0, 0.0, 0.7071)),
+                                        base_rot=(0.0, 0.0, 0.7071, 0.7071)),
                 env_spacing=3,
             )
         ),
@@ -777,7 +777,7 @@ for _mode in ("osc", "diff_ik", "pink_ik", "joint"):
                 robot="franka",
                 control_mode=mode,
                 robot_cfg=FrankaRobotCfg(base_pos=(0.0, -0.30, 0.55),
-                                         base_rot=(0.7071068, 0.0, 0.0, 0.7071068)),
+                                         base_rot=(0.0, 0.0, 0.7071068, 0.7071068)),
                 env_spacing=3,
             )
         ),
@@ -800,7 +800,7 @@ for _mode in ("osc", "joint"):
                     # +/-0.50, riding on the packing tabletop at surface height
                     "left": ("franka", FrankaRobotCfg(base_pos=(-0.50, 0.0, 0.55))),
                     "right": ("franka", FrankaRobotCfg(base_pos=(0.50, 0.0, 0.55),
-                                                       base_rot=(0.0, 0.0, 0.0, 1.0))),
+                                                       base_rot=(0.0, 0.0, 1.0, 0.0))),  # xyzw: 180 deg about z
                 }),
                 env_spacing=3,
             )

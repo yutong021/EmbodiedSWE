@@ -43,6 +43,7 @@ staging. Heavy imports (isaaclab, pxr) are deferred so importing this module sta
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -160,10 +161,10 @@ class ToolPackingSceneCfg(BaseCfg):
     workbench_usd: str = ""
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.5, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
     asset_dir: str = ""
@@ -261,7 +262,7 @@ class ToolPackingScene(BaseScene):
                 ),
                 init_state=ArticulationCfg.InitialStateCfg(
                     pos=(wx + c.box_pos[0], wy + c.box_pos[1], c.surface_z),
-                    rot=(math.cos(half), 0.0, 0.0, math.sin(half)),
+                    rot=(0.0, 0.0, math.sin(half), math.cos(half)),
                     joint_pos={".*": 0.0},
                     joint_vel={".*": 0.0},
                 ),
@@ -397,7 +398,7 @@ class ToolPackingScene(BaseScene):
             fr[:, j] = 0.3
         for j in self._drawer_j:
             fr[:, j] = 0.3
-        self.box.root_physx_view.set_dof_friction_coefficients(
+        physx_view(self.box).set_dof_friction_coefficients(
             fr, torch.arange(self.box.num_instances, device="cpu"))
 
         # --- toolbox: joints shut; root at nominal pose + jitter (root write also covers
@@ -409,8 +410,8 @@ class ToolPackingScene(BaseScene):
         root[:, 1] = wy + c.box_pos[1]
         root[:, :2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.box_pos_jitter
         root[:, 2] = c.surface_z
-        root[:, 3] = torch.cos(half)
-        root[:, 6] = torch.sin(half)
+        root[:, 5] = torch.sin(half)
+        root[:, 6] = torch.cos(half)
         root[:, 0:3] += origin
         self.box.write_root_pose_to_sim(root[:, 0:7], env_ids)
         self.box.write_root_velocity_to_sim(torch.zeros(m, 6, device=dev), env_ids)
@@ -433,8 +434,8 @@ class ToolPackingScene(BaseScene):
             st[:, :2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.reset_pos_jitter
             st[:, 2] = c.surface_z + zlift
             h = (torch.rand(m, device=dev) * 2 - 1) * yaw_amp / 2
-            st[:, 3] = torch.cos(h)
-            st[:, 6] = torch.sin(h)
+            st[:, 5] = torch.sin(h)
+            st[:, 6] = torch.cos(h)
             st[:, 0:3] += origin
             self.items[name].write_root_state_to_sim(st, env_ids)
 
