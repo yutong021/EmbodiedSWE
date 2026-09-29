@@ -118,7 +118,7 @@ def main() -> None:
         st[:, 0] = z[0] + (slot - 0.5) * (s + 0.008)
         st[:, 1] = z[1]
         st[:, 2] = c.surface_z + s / 2
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         st[:, 0:3] += env.iscene.env_origins
         scene.blocks[name].write_root_state_to_sim(st, all_ids)
 

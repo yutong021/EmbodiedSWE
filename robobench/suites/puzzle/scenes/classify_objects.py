@@ -70,11 +70,11 @@ class ClassifyObjectsSceneCfg(BaseCfg):
     workbench_usd: str = ""
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0,
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0,
                       "pos": (0.40, -0.03), "top_offset": 0.0, "height": 1.05,
                       "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"),
-                    "scale": 0.01, "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994,
+                    "scale": 0.01, "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994,
                     "pos": (0.0, 0.0), "top_offset": 0.994, "height": 0.994,
                     "kinematic": True},
     }
@@ -261,8 +261,8 @@ class ClassifyObjectsScene(BaseScene):
             st[:, 0:2] = ctr
             st[:, 2] = c.surface_z + s / 2 + 0.002
             half = yaw / 2
-            st[:, 3] = torch.cos(half)
-            st[:, 6] = torch.sin(half)
+            st[:, 5] = torch.sin(half)
+            st[:, 6] = torch.cos(half)
             st[:, 0:3] += origin
             self.blocks[name].write_root_state_to_sim(st, env_ids)
 

@@ -197,7 +197,7 @@ def main() -> None:
 
         lie = torch.tensor([[0.5, -0.5, 0.5, -0.5]], device=device)
         ang = s * (_m.pi / 2)
-        qy = torch.tensor([[_m.cos(ang / 2), 0.0, -_m.sin(ang / 2), 0.0]],
+        qy = torch.tensor([[0.0, -_m.sin(ang / 2), 0.0, _m.cos(ang / 2)]],
                           device=device)
         q = _qm(qy, lie)[0]
         st = torch.zeros(n, 13, device=device)

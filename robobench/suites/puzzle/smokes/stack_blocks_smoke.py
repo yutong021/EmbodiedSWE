@@ -143,9 +143,10 @@ def main() -> None:
 
     # --- staging helpers ------------------------------------------------------------------
     def block_state(xy, z, quat=(1.0, 0.0, 0.0, 0.0)) -> torch.Tensor:
+        """`quat` is wxyz (the staging math below); the sim state stores xyzw."""
         st = torch.zeros(n, 13, device=device)
         st[:, 0:3] = env.iscene.env_origins + torch.tensor([xy[0], xy[1], z], device=device)
-        st[:, 3:7] = torch.tensor(quat, device=device)
+        st[:, 3:7] = torch.tensor((*quat[1:], quat[0]), device=device)
         return st
 
     def slot_z(level: int) -> float:

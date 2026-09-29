@@ -125,8 +125,8 @@ def _sorting_room(cfg, scene, robot):
 
 SUITE = "puzzle"
 
-_FRANKA_ROT = (0.7071068, 0.0, 0.0, 0.7071068)
-_FACE_SOUTH = (0.7071068, 0.0, 0.0, -0.7071068)  # yaw -90: franka +x -> world -y
+_FRANKA_ROT = (0.0, 0.0, 0.7071068, 0.7071068)  # xyzw
+_FACE_SOUTH = (0.0, 0.0, -0.7071068, 0.7071068)  # xyzw; yaw -90: franka +x -> world -y
 
 
 # ============================== push_shapes ======================================
@@ -181,7 +181,7 @@ for _mode in ("joint", "pink_ik"):
                 # base y -0.50: the bench face is at -0.45; any closer spawns the
                 # shins inside the bench and the contact solver kicks the robot over.
                 robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.50, 0.95),
-                                        base_rot=(0.7071, 0.0, 0.0, 0.7071)),
+                                        base_rot=(0.0, 0.0, 0.7071, 0.7071)),
                 env_spacing=3,
             )
         ),
@@ -341,7 +341,7 @@ for _mode in ("joint", "pink_ik"):
                 robot="gr1t2",
                 control_mode=mode,
                 robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.50, 0.95),
-                                        base_rot=(0.7071, 0.0, 0.0, 0.7071)),
+                                        base_rot=(0.0, 0.0, 0.7071, 0.7071)),
                 env_spacing=3,
             )
         ),
@@ -533,7 +533,7 @@ for _mode in ("joint", "pink_ik"):
                 robot="gr1t2",
                 control_mode=mode,
                 robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.48, 0.95),
-                                        base_rot=(0.7071, 0.0, 0.0, 0.7071)),
+                                        base_rot=(0.0, 0.0, 0.7071, 0.7071)),
                 env_spacing=3,
             )
         ),
@@ -623,7 +623,7 @@ for _mode in ("joint", "pink_ik"):
                 robot="gr1t2",
                 control_mode=mode,
                 robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.48, 0.95),
-                                        base_rot=(0.7071, 0.0, 0.0, 0.7071)),
+                                        base_rot=(0.0, 0.0, 0.7071, 0.7071)),
                 env_spacing=3,
             )
         ),
@@ -682,5 +682,5 @@ for _mode in ("joint", "pink_ik"):
             scene="classify_objects", scene_cfg=_classify_objects_gr1t2_cfg(),
             robot="gr1t2", control_mode=mode,
             robot_cfg=GR1T2RobotCfg(base_pos=(0.0, -0.48, 0.95),
-                                    base_rot=(0.7071, 0.0, 0.0, 0.7071)), env_spacing=3)),
+                                    base_rot=(0.0, 0.0, 0.7071, 0.7071)), env_spacing=3)),
     )

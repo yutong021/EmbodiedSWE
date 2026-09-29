@@ -31,6 +31,7 @@ post_step owns `set_external_force_and_torque` for the plunger.
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -269,7 +270,7 @@ class SyringeDosingScene(BaseScene):
                     stiffness=0.0,
                     damping=c.plunger_damping,  # viscous o-ring feel under pull
                     friction=c.plunger_friction,  # Coulomb: holds it anywhere
-                    effort_limit_sim=40.0,
+                    joint_effort_limit=40.0,
                 ),
             },
         )
@@ -365,7 +366,7 @@ class SyringeDosingScene(BaseScene):
         # toolbox doors (2026-08-07): write dof friction/damping at reset via
         # root_physx_view with CPU tensors.
         n_all = self.env.num_envs
-        view = self.syringe.root_physx_view
+        view = physx_view(self.syringe)
         all_cpu = torch.arange(n_all, device="cpu", dtype=torch.int32)
         view.set_dof_friction_coefficients(
             torch.full((n_all, 1), c.plunger_friction, device="cpu"), all_cpu)
@@ -387,7 +388,7 @@ class SyringeDosingScene(BaseScene):
             st = torch.zeros(m, 13, device=dev)
             st[:, 0:3] = self.env_origins[env_ids] + torch.tensor(pos, device=dev)
             st[:, 0:2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.reset_jitter
-            st[:, 3] = 1.0
+            st[:, 6] = 1.0
             body.write_root_state_to_sim(st, env_ids)
 
         put_j(self.rack, (c.rack_pos[0], c.rack_pos[1], z0))

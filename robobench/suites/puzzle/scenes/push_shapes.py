@@ -306,8 +306,8 @@ class PushShapesScene(BaseScene):
             state[:, 0] = x + jitter[:, 0]
             state[:, 1] = y + jitter[:, 1]
             state[:, 2] = z
-            state[:, 3] = torch.cos(yaw / 2)
-            state[:, 6] = torch.sin(yaw / 2)
+            state[:, 5] = torch.sin(yaw / 2)
+            state[:, 6] = torch.cos(yaw / 2)
             state[:, 0:3] += origins
             return state
 

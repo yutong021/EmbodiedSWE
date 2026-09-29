@@ -269,9 +269,10 @@ def main() -> None:
             env.iscene.update(0.0)
 
     def make_state(pos, quat=(1.0, 0.0, 0.0, 0.0)) -> torch.Tensor:
+        """`quat` is wxyz (this smoke's staging math); the sim state stores xyzw."""
         st = torch.zeros(n, 13, device=device)
         st[:, 0:3] = env.iscene.env_origins + torch.tensor(pos, device=device)
-        st[:, 3:7] = torch.tensor(quat, device=device)
+        st[:, 3:7] = torch.tensor((*quat[1:], quat[0]), device=device)
         return st
 
     # current commanded hold pose (env-local), maintained by hold()/move_to()
@@ -332,7 +333,7 @@ def main() -> None:
     def pen_check() -> None:
         st = scene.spatula.data.root_state_w[0, 0:7].detach().cpu().numpy()
         pan = scene.pan.data.root_pos_w[0].detach().cpu().numpy()
-        w, x, y, z = st[3:7]
+        x, y, z, w = st[3:7]
         ex = np.array([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)])
         ez = np.array([2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)])
         pw = st[0:3] + PEN_PTS[:, 0:1] * ex + PEN_PTS[:, 1:2] * ez
@@ -375,7 +376,8 @@ def main() -> None:
     def spatula_pose():
         st = scene.spatula.data.root_state_w[0]
         pos = (st[0:3] - env.iscene.env_origins[0]).tolist()
-        return pos, tuple(st[3:7].tolist())
+        x, y, z, w = st[3:7].tolist()
+        return pos, (w, x, y, z)
 
     def report(tag: str) -> None:
         i = pi()

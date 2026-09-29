@@ -181,7 +181,7 @@ def _spawn_jointed_part(prim_path: str, cfg: Any, translation=None, orientation=
     if translation is not None:
         xf.AddTranslateOp().Set(Gf.Vec3d(*[float(v) for v in translation]))
     if orientation is not None:
-        w, x, y, z = (float(v) for v in orientation)
+        x, y, z, w = (float(v) for v in orientation)  # Isaac Lab 3.0 spawners pass xyzw
         xf.AddOrientOp().Set(Gf.Quatf(w, Gf.Vec3f(x, y, z)))
     UsdPhysics.RigidBodyAPI.Apply(root)
     UsdPhysics.MassAPI.Apply(root).CreateMassAttr(float(cfg.mass))
@@ -297,7 +297,7 @@ def _spawn_vessel(prim_path: str, cfg: Any, translation=None, orientation=None):
     if translation is not None:
         xf.AddTranslateOp().Set(Gf.Vec3d(*[float(v) for v in translation]))
     if orientation is not None:
-        w, x, y, z = (float(v) for v in orientation)
+        x, y, z, w = (float(v) for v in orientation)  # Isaac Lab 3.0 spawners pass xyzw
         xf.AddOrientOp().Set(Gf.Quatf(w, Gf.Vec3f(x, y, z)))
     UsdPhysics.RigidBodyAPI.Apply(root)
     UsdPhysics.MassAPI.Apply(root).CreateMassAttr(float(cfg.mass_props.mass))
@@ -412,7 +412,7 @@ def _spawn_pod(prim_path: str, cfg: Any, translation=None, orientation=None):
     if translation is not None:
         xf.AddTranslateOp().Set(Gf.Vec3d(*[float(v) for v in translation]))
     if orientation is not None:
-        w, x, y, z = (float(v) for v in orientation)
+        x, y, z, w = (float(v) for v in orientation)  # Isaac Lab 3.0 spawners pass xyzw
         xf.AddOrientOp().Set(Gf.Quatf(w, Gf.Vec3f(x, y, z)))
     UsdPhysics.RigidBodyAPI.Apply(root)
     UsdPhysics.MassAPI.Apply(root).CreateMassAttr(float(cfg.mass_props.mass))
@@ -517,10 +517,10 @@ class CoffeeServiceSceneCfg(BaseCfg):
     workbench_usd: str = ""
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.05, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.05, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
 
@@ -1110,7 +1110,7 @@ class CoffeeServiceScene(BaseScene):
         j = UsdPhysics.FixedJoint.Get(self.env.stage, self._gw_paths[env_i][s][k])
         p, q = rel_p.tolist(), rel_q.tolist()
         j.GetLocalPos0Attr().Set(Gf.Vec3f(p[0], p[1], p[2]))
-        j.GetLocalRot0Attr().Set(Gf.Quatf(q[0], Gf.Vec3f(q[1], q[2], q[3])))
+        j.GetLocalRot0Attr().Set(Gf.Quatf(q[3], Gf.Vec3f(q[0], q[1], q[2])))
         j.GetJointEnabledAttr().Set(True)
         return True
 
@@ -1232,7 +1232,7 @@ class CoffeeServiceScene(BaseScene):
         pos = (c.cm_pos[0], c.cm_pos[1], c.surface_z)
         st = torch.zeros(m, 13, device=self.env.device)
         st[:, 0:3] = self.env_origins[env_ids] + torch.tensor(pos, device=self.env.device)
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         return st
 
     def reset(self, env_ids: torch.Tensor) -> None:
@@ -1247,7 +1247,7 @@ class CoffeeServiceScene(BaseScene):
         tray_st[:, 0] = c.tray_pos[0]
         tray_st[:, 1] = c.tray_pos[1]
         tray_st[:, 2] = c.surface_z
-        tray_st[:, 3] = 1.0
+        tray_st[:, 6] = 1.0
         tray_st[:, 0:3] += self.env_origins[env_ids]
         self.tray.write_root_state_to_sim(tray_st, env_ids)
 
@@ -1259,8 +1259,8 @@ class CoffeeServiceScene(BaseScene):
             st[:, :2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.reset_pos_jitter
             st[:, 2] = c.surface_z + c.tray_h + h / 2 + 0.002
             half = (torch.rand(m, device=dev) * 2 - 1) * math.radians(c.reset_yaw_deg) / 2
-            st[:, 3] = torch.cos(half)
-            st[:, 6] = torch.sin(half)
+            st[:, 5] = torch.sin(half)
+            st[:, 6] = torch.cos(half)
             st[:, 0:3] += self.env_origins[env_ids]
             obj.write_root_state_to_sim(st, env_ids)
 

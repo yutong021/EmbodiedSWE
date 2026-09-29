@@ -81,6 +81,7 @@ the scene — stays app-free.
 
 from __future__ import annotations
 
+from robobench.compat61 import physx_view
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -171,10 +172,10 @@ class SpatulaFlipServeSceneCfg(BaseCfg):
     workbench_usd: str = ""  # empty -> the preset's vendored USD
     TABLES: ClassVar[dict[str, dict[str, Any]]] = {
         "lab_table": {"usd": ("lab_table", "table_instanceable.usd"), "scale": 1.0,
-                      "orient": (0.70711, 0.0, 0.0, 0.70711), "surface_z": 0.0, "pos": (0.0, 0.0),
+                      "orient": (0.0, 0.0, 0.70711, 0.70711), "surface_z": 0.0, "pos": (0.0, 0.0),
                       "top_offset": 0.0, "height": 1.05, "kinematic": False},
         "packing": {"usd": ("packing_table", "SM_HeavyDutyPackingTable_C02_01_physics.usd"), "scale": 0.01,
-                    "orient": (1.0, 0.0, 0.0, 0.0), "surface_z": 0.994, "pos": (0.0, 0.0),
+                    "orient": (0.0, 0.0, 0.0, 1.0), "surface_z": 0.994, "pos": (0.0, 0.0),
                     "top_offset": 0.994, "height": 0.994, "kinematic": True},
     }
 
@@ -336,7 +337,7 @@ class SpatulaFlipServeScene(BaseScene):
             ),
             init_state=RigidObjectCfg.InitialStateCfg(
                 pos=(c.pan_pos[0], c.pan_pos[1], z0),
-                rot=(math.cos(half), 0.0, 0.0, math.sin(half))),
+                rot=(0.0, 0.0, math.sin(half), math.cos(half))),
         )
         # Plate: kinematic; its POSITION is a reset randomization axis (kinematic bodies
         # take pose writes — the turntable/board precedent; nothing ever needs to move it).
@@ -453,10 +454,10 @@ class SpatulaFlipServeScene(BaseScene):
     def _set_friction(self, asset, friction: tuple) -> None:
         """Overwrite static/dynamic friction on every shape of `asset` (all envs) — the
         motherboard scene's pattern, tuple form."""
-        mats = asset.root_physx_view.get_material_properties()
+        mats = physx_view(asset).get_material_properties()
         mats[..., 0] = friction[0]
         mats[..., 1] = friction[1]
-        asset.root_physx_view.set_material_properties(
+        physx_view(asset).set_material_properties(
             mats, torch.arange(self.env.num_envs, device="cpu"))
 
     def _alloc(self, n: int, dev: str) -> None:
@@ -517,8 +518,8 @@ class SpatulaFlipServeScene(BaseScene):
             st = torch.zeros(m, 13, device=dev)
             st[:, 0:3] = origin + torch.where(pres, in_pan, park)
             half = (torch.rand(m, device=dev) * 2 - 1) * yaw_amp / 2
-            st[:, 3] = torch.cos(half)
-            st[:, 6] = torch.sin(half)
+            st[:, 5] = torch.sin(half)
+            st[:, 6] = torch.cos(half)
             self.breads[name].write_root_state_to_sim(st, env_ids)
 
         # --- pan: re-pin at its configured pose (kinematic write; yaw is a layout knob) ---
@@ -527,8 +528,8 @@ class SpatulaFlipServeScene(BaseScene):
         st[:, 0] = c.pan_pos[0]
         st[:, 1] = c.pan_pos[1]
         st[:, 2] = c.surface_z
-        st[:, 3] = math.cos(half_p)
-        st[:, 6] = math.sin(half_p)
+        st[:, 5] = math.sin(half_p)
+        st[:, 6] = math.cos(half_p)
         st[:, 0:3] += origin
         self.pan.write_root_state_to_sim(st, env_ids)
 
@@ -538,7 +539,7 @@ class SpatulaFlipServeScene(BaseScene):
         st[:, 1] = c.plate_pos[1]
         st[:, :2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.plate_jitter
         st[:, 2] = c.surface_z
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         st[:, 0:3] += origin
         self.plate.write_root_state_to_sim(st, env_ids)
 
@@ -549,8 +550,8 @@ class SpatulaFlipServeScene(BaseScene):
         st[:, :2] += (torch.rand(m, 2, device=dev) * 2 - 1) * c.spatula_jitter
         st[:, 2] = c.surface_z + 0.003
         half = (torch.rand(m, device=dev) * 2 - 1) * math.radians(c.spatula_yaw_deg) / 2
-        st[:, 3] = torch.cos(half)
-        st[:, 6] = torch.sin(half)
+        st[:, 5] = torch.sin(half)
+        st[:, 6] = torch.cos(half)
         st[:, 0:3] += origin
         self.spatula.write_root_state_to_sim(st, env_ids)
 

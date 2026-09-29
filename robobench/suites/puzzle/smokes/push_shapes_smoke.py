@@ -162,7 +162,7 @@ def main() -> bool:
     def yaw_delta(key: str, degrees: float) -> torch.Tensor:
         radians = math.radians(degrees)
         delta = torch.tensor(
-            [math.cos(radians / 2), 0.0, 0.0, math.sin(radians / 2)], device=device
+            [0.0, 0.0, math.sin(radians / 2), math.cos(radians / 2)], device=device
         ).expand(count, 4)
         return quat_mul(scene.pads[key].data.root_quat_w, delta)
 

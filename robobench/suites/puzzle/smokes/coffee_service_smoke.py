@@ -183,7 +183,7 @@ def main() -> None:
             x, y = pos
             z = c.surface_z + c.tray_h + c.pod_h / 2 + 0.003
         st[:, 0:3] = env.iscene.env_origins + torch.tensor([x, y, z], device=device)
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         scene.pod.write_root_state_to_sim(st, torch.arange(env.num_envs, device=device))
         step(40)
 
@@ -202,7 +202,7 @@ def main() -> None:
             x, y = pos
             z = c.surface_z + c.tray_h + c.cup_h / 2 + 0.003
         st[:, 0:3] = env.iscene.env_origins + torch.tensor([x, y, z], device=device)
-        st[:, 3] = 1.0
+        st[:, 6] = 1.0
         scene.cup.write_root_state_to_sim(st, torch.arange(env.num_envs, device=device))
         step(40)
 
